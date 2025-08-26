@@ -1,0 +1,40 @@
+[embedding]
+provider = "fallback"
+# provider = "bedrock-titan"
+# model = "amazon.titan-embed-text-v2:0"
+# model = "cohere.embed-multilingual-v3" # or "cohere.embed-english-v3"
+# aws_region = "eu-central-1"  # or your preferred AWS region
+
+[llm]
+primary = "anthropic.claude-sonnet-4-20250514-v1:0"
+fallback = "anthropic.claude-3-7-sonnet-20250219-v1:0`"
+
+[pgvector]
+url = "postgresql://test_user:test_password@localhost:5432/test_chatbot"
+
+[data]
+document_dir = "./documents"
+
+# Production example:
+# document_dir = "/var/lib/chatbot/documents"
+
+# Example documents directory structure:
+# documents/
+# ├── hr_policy.txt
+# ├── tech_guidelines.txt
+# ├── company_faq.txt
+# └── procedures/
+#     ├── onboarding.md
+#     └── expense_reports.txt
+
+# Environment Variables Required:
+#
+# For Cohere (when provider = "cohere"):
+#   export COHERE_API_KEY="your-cohere-api-key"
+#
+# For AWS Bedrock (using AWS profile - no keys needed):
+#   export AWS_PROFILE="your-aws-profile-name"  # Optional, defaults to 'default'
+#   export AWS_REGION="us-east-1"
+#
+# Optional (for debugging):
+#   export RUST_LOG=debug

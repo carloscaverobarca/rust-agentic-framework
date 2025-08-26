@@ -1,0 +1,22 @@
+[tasks."claude.generate_code_review"]
+description = "Generate code review output from repository content using claude"
+run = "claude --verbose -f .claude/commands/generate-code-review.md"
+
+[tasks."claude.generate_github_issues"]
+description = "Generate GitHub issues from repository content using claude"
+run = "claude --verbose -f .claude/commands/generate-github-issues.md"
+
+[tasks."claude.generate_issue_prompts"]
+description = "Generate issue prompts from repository content using claude"
+run = "claude --verbose -f .claude/commands/generate-issue-prompts.md"
+
+[tasks."claude.generate_missing_tests"]
+description = "Generate missing tests for code in repository content using claude"
+run = "claude --verbose -f .claude/commands/generate-missing-tests.md"
+
+[tasks."claude.update_readme"]
+description = "Update README.md from repository content using claude"
+run = "claude --verbose -f .claude/commands/update-readme.md"
+
+[tools]
+node = "latest"

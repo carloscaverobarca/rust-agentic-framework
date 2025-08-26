@@ -1,0 +1,35 @@
+services:
+  postgres-test:
+    image: "pgvector/pgvector:pg16"
+    container_name: agentic-postgres-test
+    ports:
+      - "5432:5432"
+    volumes:
+#      - postgres:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: 'postgres -c log_min_duration_statement=0 -c max_connections=1000'
+    environment:
+      POSTGRES_DB: test_chatbot
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    restart: always
+    healthcheck:
+      test: pg_isready -d test_chatbot -U test_user
+      interval: 2s
+      timeout: 5s
+      retries: 5
+#    networks:
+#      - test-network
+
+  # Optional: Redis for session storage in future
+  # redis-test:
+  #   image: redis:7-alpine
+  #   container_name: agentic-redis-test
+  #   ports:
+  #     - "6380:6379"
+  #   networks:
+  #     - test-network
+#
+#networks:
+#  test-network:
+#    driver: bridge

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p web_gui/src/{components,services,types,styles} web_gui/public)",
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run preview)",
+      "Bash(rm -rf node_modules package-lock.json)",
+      "Bash(npm install)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/)"
+    ],
+    "deny": []
+  }
+}

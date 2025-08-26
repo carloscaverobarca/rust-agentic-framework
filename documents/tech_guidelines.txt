@@ -1,0 +1,8 @@
+Technology Guidelines
+
+Code Review: All code must be reviewed before merging to main branch.
+Tech Stack: Use TypeScript for frontend, Rust for backend services.
+Testing: Run automated tests on every commit via CI/CD pipeline.
+Deployment: Deploy to staging environment before production.
+Documentation: Update API docs for any endpoint changes.
+Security: Never commit secrets or API keys to repository.

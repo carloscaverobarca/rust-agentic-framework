@@ -1,0 +1,76 @@
+# Rust
+/target/
+Cargo.lock
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+postgres_data/
+vector_data/
+
+# Configuration overrides
+config.local.toml
+config.production.toml
+config.development.toml
+
+# Web GUI build artifacts
+web_gui/dist/
+web_gui/build/
+web_gui/node_modules/
+web_gui/.env
+web_gui/.env.local
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# AWS credentials (if accidentally committed)
+.aws/
+aws-credentials.json
+
+# API keys and secrets
+secrets/
+*.key
+*.pem
+*.p12
+
+# Test artifacts
+test_output/
+coverage/
+*.profraw
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Backup files
+*.orig
+*.rej
+
+# Local development
+.local/
+local/
