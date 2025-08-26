@@ -1,7 +1,7 @@
+use crate::bedrock_common::invoke_bedrock;
 use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_bedrockruntime::Client as BedrockClient;
-use crate::bedrock_common::invoke_bedrock;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 
@@ -88,7 +88,7 @@ impl BedrockTitanClient {
             }
             e
         })?;
-        
+
         Ok(parsed.embedding)
     }
 }

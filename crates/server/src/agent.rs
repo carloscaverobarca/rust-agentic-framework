@@ -265,7 +265,6 @@ impl AgentService {
         session_id: Uuid,
         messages: Vec<Message>,
     ) -> Result<Vec<Event>> {
-
         for message in &messages {
             self.session_store
                 .lock()

@@ -2,7 +2,11 @@ use anyhow::Result;
 use aws_sdk_bedrockruntime::{primitives::Blob, Client as BedrockClient};
 use tracing::error;
 
-pub async fn invoke_bedrock(client: &BedrockClient, model_id: &str, body: Vec<u8>) -> Result<Vec<u8>> {
+pub async fn invoke_bedrock(
+    client: &BedrockClient,
+    model_id: &str,
+    body: Vec<u8>,
+) -> Result<Vec<u8>> {
     let blob = Blob::new(body);
     let response = client
         .invoke_model()
@@ -16,5 +20,3 @@ pub async fn invoke_bedrock(client: &BedrockClient, model_id: &str, body: Vec<u8
         })?;
     Ok(response.body().as_ref().to_vec())
 }
-
-

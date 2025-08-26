@@ -1,7 +1,7 @@
+use crate::bedrock_common::invoke_bedrock;
 use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_bedrockruntime::Client as BedrockClient;
-use crate::bedrock_common::invoke_bedrock;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 
@@ -50,7 +50,13 @@ impl BedrockCohereClient {
 
         let request_body = serde_json::to_string(&test_request)?;
         // This will fail if credentials are wrong, region is wrong, or model doesn't exist
-        match invoke_bedrock(&self.client, &self.config.model_id, request_body.into_bytes()).await {
+        match invoke_bedrock(
+            &self.client,
+            &self.config.model_id,
+            request_body.into_bytes(),
+        )
+        .await
+        {
             Ok(_) => Ok(()),
             Err(e) => {
                 error!("AWS Bedrock connection test failed: {}", e);
@@ -172,12 +178,16 @@ impl BedrockCohereClient {
             error!("Failed to serialize request: {}", e);
             e
         })?;
-        let response_body = invoke_bedrock(&self.client, &self.config.model_id, request_body.into_bytes())
-            .await
-            .map_err(|e| {
-                error!("Bedrock invoke_model failed: {}", e);
-                e
-            })?;
+        let response_body = invoke_bedrock(
+            &self.client,
+            &self.config.model_id,
+            request_body.into_bytes(),
+        )
+        .await
+        .map_err(|e| {
+            error!("Bedrock invoke_model failed: {}", e);
+            e
+        })?;
 
         let embed_response: BedrockEmbedResponse = serde_json::from_slice(&response_body)
             .map_err(|e| {
