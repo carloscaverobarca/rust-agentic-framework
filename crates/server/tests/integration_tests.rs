@@ -214,7 +214,9 @@ mod postgres_integration {
         let session_id = Uuid::new_v4();
         let messages = vec![Message {
             role: Role::User,
-            content: "Can you summarize company_policy.txt and also tell me about remote work policy?".to_string(),
+            content:
+                "Can you summarize company_policy.txt and also tell me about remote work policy?"
+                    .to_string(),
             name: None,
         }];
 
