@@ -553,6 +553,13 @@ The project uses:
 7. **Follow Kent Beck's principles**: Red → Green → Refactor
 8. **Separate structural from behavioral changes** in commits
 
+## Acknowledgments
+
+This project has been influenced and inspired by several excellent resources:
+
+- [Kent Beck's Augmented Coding: Beyond the Vibes](https://substack.com/@kentbeck/p-166781850) - Invaluable insights into iterative development processes and TDD principles that shaped our development workflow with GenAI tools
+- [LLM Code Generation Workflow](https://harper.blog/2025/02/16/my-llm-codegen-workflow-atm/) - Modern perspectives on integrating LLMs into development practices that influenced our tooling approach
+
 ## License
 
 Licensed under the Apache License, Version 2.0 (the "License");
