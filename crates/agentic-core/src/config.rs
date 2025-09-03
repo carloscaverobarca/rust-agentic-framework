@@ -25,9 +25,24 @@ pub struct LlmConfig {
     pub fallback: String,
 }
 
+impl LlmConfig {
+    pub fn with_env_overrides(&self) -> Self {
+        let primary = env::var("LLM_PRIMARY_MODEL").unwrap_or_else(|_| self.primary.clone());
+        let fallback = env::var("LLM_FALLBACK_MODEL").unwrap_or_else(|_| self.fallback.clone());
+        Self { primary, fallback }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PgVectorConfig {
     pub url: String,
+}
+
+impl PgVectorConfig {
+    pub fn with_env_overrides(&self) -> Self {
+        let url = env::var("PGVECTOR_URL").unwrap_or_else(|_| self.url.clone());
+        Self { url }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -21,7 +21,6 @@ pub struct BedrockClient {
 impl BedrockClient {
     pub async fn new(config: ModelConfig) -> Result<Self> {
         info!("Initializing BedrockClient");
-        // Load AWS configuration using the official SDK with proper error handling
         let aws_config = aws_config::defaults(BehaviorVersion::latest()).load().await;
 
         let client = Client::new(&aws_config);
@@ -30,7 +29,6 @@ impl BedrockClient {
     }
 
     pub async fn new_with_region(config: ModelConfig, region: &str) -> Result<Self> {
-        // Allow explicit region configuration for testing
         let aws_config = aws_config::defaults(BehaviorVersion::latest())
             .region(aws_config::Region::new(region.to_string()))
             .load()

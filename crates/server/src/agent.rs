@@ -176,7 +176,8 @@ impl AgentService {
             .context("Failed to create embedding provider")?;
 
         // Initialize vector store (skip for SQLite URLs in testing)
-        let vector_store = if config.pgvector.url.starts_with("sqlite://") {
+        let pg_cfg = config.pgvector.with_env_overrides();
+        let vector_store = if pg_cfg.url.starts_with("sqlite://") {
             // For testing, create an in-memory vector store alternative
             Arc::new(AnyVectorStore::InMemory(InMemoryVectorStore::new()))
         } else {
@@ -187,10 +188,9 @@ impl AgentService {
                 embedding_dimensions
             );
 
-            let store =
-                VectorStore::new_with_dimensions(&config.pgvector.url, embedding_dimensions)
-                    .await
-                    .context("Failed to create vector store")?;
+            let store = VectorStore::new_with_dimensions(&pg_cfg.url, embedding_dimensions)
+                .await
+                .context("Failed to create vector store")?;
 
             // Initialize the database schema and extensions
             store
@@ -202,9 +202,10 @@ impl AgentService {
         };
 
         // Initialize LLM client with configured models
+        let llm_cfg = config.llm.with_env_overrides();
         let model_config = ModelConfig {
-            primary_model: config.llm.primary.clone(),
-            fallback_model: config.llm.fallback.clone(),
+            primary_model: llm_cfg.primary,
+            fallback_model: llm_cfg.fallback,
             ..ModelConfig::default()
         };
         let llm_client = Arc::new(
