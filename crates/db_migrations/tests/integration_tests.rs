@@ -2,6 +2,7 @@
 use db_migrations::run_migrations;
 
 #[tokio::test]
+#[ignore = "Requires a real database to properly test the migration"]
 async fn should_apply_migrations_in_order() {
     let database_url = "postgresql://test_user:test_password@localhost:5432/test_chatbot";
 
