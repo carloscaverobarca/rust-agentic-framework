@@ -339,13 +339,18 @@ mod tests {
 
                 // Should contain properly processed response from AgentService
                 assert!(
-                    content.contains("event: assistant_output") || content.contains("event: content_delta"),
+                    content.contains("event: assistant_output")
+                        || content.contains("event: content_delta"),
                     "Should contain either assistant_output or content_delta event"
                 );
                 // Should NOT contain the stub response
                 assert!(!content.contains("This is a stub response"));
                 // Should contain a meaningful response about company policies (indicating successful fallback behavior)
-                assert!(content.contains("policies") || content.contains("onboarding") || content.contains("HR"));
+                assert!(
+                    content.contains("policies")
+                        || content.contains("onboarding")
+                        || content.contains("HR")
+                );
             }
             Err(_) => {
                 // AgentService creation failed in test environment (expected)
@@ -446,7 +451,8 @@ mod tests {
                     "Should contain tool_usage event"
                 );
                 assert!(
-                    content.contains("event: assistant_output") || content.contains("event: content_delta"),
+                    content.contains("event: assistant_output")
+                        || content.contains("event: content_delta"),
                     "Should contain assistant_output or content_delta event"
                 );
                 assert!(

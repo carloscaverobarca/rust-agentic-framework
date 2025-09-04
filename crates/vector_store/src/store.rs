@@ -23,12 +23,13 @@ impl VectorStore {
             .await
             .context("Failed to connect to PostgreSQL")?;
 
-        db_migrations::run_migrations(&database_url)
+        db_migrations::run_migrations(database_url)
             .await
             .context("Failed to run database migrations")?;
 
-        tracing::info!("Vector store initialization completed successfully with migrations applied");
-
+        tracing::info!(
+            "Vector store initialization completed successfully with migrations applied"
+        );
 
         Ok(Self {
             pool,

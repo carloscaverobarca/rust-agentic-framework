@@ -800,15 +800,24 @@ mod tests {
         let result = service.process_message(session_id, messages).await;
 
         // Check first response
-        assert!(result.is_ok(), "First message should be processed successfully");
+        assert!(
+            result.is_ok(),
+            "First message should be processed successfully"
+        );
         let events = result.unwrap();
         assert!(!events.is_empty(), "Should receive response events");
 
         // Verify session storage
         let stored_messages = service.session_store.lock().unwrap().get(&session_id);
-        assert!(!stored_messages.is_empty(), "Session should contain messages");
-        assert_eq!(stored_messages[0].content, initial_message.content, "First message should match");
-        
+        assert!(
+            !stored_messages.is_empty(),
+            "Session should contain messages"
+        );
+        assert_eq!(
+            stored_messages[0].content, initial_message.content,
+            "First message should match"
+        );
+
         // Second message to verify persistence
         let follow_up_message = Message {
             role: Role::User,
@@ -818,17 +827,27 @@ mod tests {
 
         let messages = vec![follow_up_message.clone()];
         let result = service.process_message(session_id, messages).await;
-        
-        assert!(result.is_ok(), "Follow-up message should be processed successfully");
-        
+
+        assert!(
+            result.is_ok(),
+            "Follow-up message should be processed successfully"
+        );
+
         // Verify session contains both messages
         let final_messages = service.session_store.lock().unwrap().get(&session_id);
-        assert!(!final_messages.is_empty(), "Session should contain messages");
-        
+        assert!(
+            !final_messages.is_empty(),
+            "Session should contain messages"
+        );
+
         // Verify messages are in correct order
-        let has_initial = final_messages.iter().any(|msg| msg.content == initial_message.content);
-        let has_followup = final_messages.iter().any(|msg| msg.content == follow_up_message.content);
-        
+        let has_initial = final_messages
+            .iter()
+            .any(|msg| msg.content == initial_message.content);
+        let has_followup = final_messages
+            .iter()
+            .any(|msg| msg.content == follow_up_message.content);
+
         assert!(has_initial, "Session should contain initial message");
         assert!(has_followup, "Session should contain follow-up message");
     }

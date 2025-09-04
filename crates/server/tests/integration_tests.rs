@@ -364,7 +364,8 @@ mod postgres_integration {
             || event_content.contains("Authorization")
             || event_content.contains("Failed to send request to Bedrock")
             || event_content.contains("trouble with the AI service");
-        let has_success_response = event_content.contains("content_delta") || (!has_llm_error && event_content.contains("assistant_output"));
+        let has_success_response = event_content.contains("content_delta")
+            || (!has_llm_error && event_content.contains("assistant_output"));
 
         assert!(
             has_llm_error || has_success_response,
@@ -392,14 +393,11 @@ mod postgres_integration {
         // Create a test documents folder and add some files
         let docs_dir = _temp_dir.path().join("documents");
         std::fs::create_dir_all(&docs_dir).unwrap();
-        
+
         // Create a test document
         let test_file = docs_dir.join("test.txt");
-        std::fs::write(
-            &test_file,
-            "Test document for automated loading",
-        ).unwrap();
-        
+        std::fs::write(&test_file, "Test document for automated loading").unwrap();
+
         config.data.document_dir = docs_dir.to_string_lossy().to_string();
 
         let agent_service = match AgentService::new(config).await {
