@@ -175,30 +175,30 @@ impl AgentService {
             .await
             .context("Failed to create embedding provider")?;
 
-        // Initialize vector store (skip for SQLite URLs in testing)
+        // Initialize vector store (only use in-memory for testing)
         let pg_cfg = config.pgvector.with_env_overrides();
         let vector_store = if pg_cfg.url.starts_with("sqlite://") {
             // For testing, create an in-memory vector store alternative
             Arc::new(AnyVectorStore::InMemory(InMemoryVectorStore::new()))
-        } else {
+        } else if pg_cfg.url.starts_with("postgresql://") {
             // Create and initialize PostgreSQL vector store with correct embedding dimensions
             let embedding_dimensions = embeddings_client.dimension();
             info!(
-                "Initializing vector store with {} dimensions",
+                "Initializing PostgreSQL vector store with {} dimensions",
                 embedding_dimensions
             );
 
             let store = VectorStore::new_with_dimensions(&pg_cfg.url, embedding_dimensions)
                 .await
-                .context("Failed to create vector store")?;
-
-            // Initialize the database schema and extensions
-            store
-                .initialize()
-                .await
-                .context("Failed to initialize vector store schema")?;
+                .context("Failed to connect to PostgreSQL vector store")?;
 
             Arc::new(AnyVectorStore::Real(store))
+        } else {
+            // Invalid URL - not sqlite or postgresql
+            anyhow::bail!(
+                "Invalid database URL: {}, must start with 'sqlite://' or 'postgresql://'",
+                pg_cfg.url
+            );
         };
 
         // Initialize LLM client with configured models
@@ -789,33 +789,48 @@ mod tests {
         };
 
         let session_id = Uuid::new_v4();
-        let messages = vec![Message {
+        let initial_message = Message {
             role: Role::User,
             content: "Hello, can you help me?".to_string(),
             name: None,
-        }];
+        };
 
-        // This will likely return events even if external services fail (expected for our resilience design)
+        // First message
+        let messages = vec![initial_message.clone()];
         let result = service.process_message(session_id, messages).await;
 
-        // The important thing is that we get some response events
-        match result {
-            Ok(events) => {
-                assert!(!events.is_empty());
-                // Should contain at least one assistant output event
-                // We'll just check that we got events, since checking the specific type is complex with Axum Events
-                assert!(!events.is_empty());
-            }
-            Err(_) => {
-                // This could happen due to missing dependencies in test environment
-                // The key is that the interface works
-            }
-        }
+        // Check first response
+        assert!(result.is_ok(), "First message should be processed successfully");
+        let events = result.unwrap();
+        assert!(!events.is_empty(), "Should receive response events");
 
-        // Check that messages were stored in session (this should work even if LLM call fails)
+        // Verify session storage
         let stored_messages = service.session_store.lock().unwrap().get(&session_id);
-        assert_eq!(stored_messages.len(), 1);
-        assert_eq!(stored_messages[0].content, "Hello, can you help me?");
+        assert!(!stored_messages.is_empty(), "Session should contain messages");
+        assert_eq!(stored_messages[0].content, initial_message.content, "First message should match");
+        
+        // Second message to verify persistence
+        let follow_up_message = Message {
+            role: Role::User,
+            content: "What can you tell me about the company?".to_string(),
+            name: None,
+        };
+
+        let messages = vec![follow_up_message.clone()];
+        let result = service.process_message(session_id, messages).await;
+        
+        assert!(result.is_ok(), "Follow-up message should be processed successfully");
+        
+        // Verify session contains both messages
+        let final_messages = service.session_store.lock().unwrap().get(&session_id);
+        assert!(!final_messages.is_empty(), "Session should contain messages");
+        
+        // Verify messages are in correct order
+        let has_initial = final_messages.iter().any(|msg| msg.content == initial_message.content);
+        let has_followup = final_messages.iter().any(|msg| msg.content == follow_up_message.content);
+        
+        assert!(has_initial, "Session should contain initial message");
+        assert!(has_followup, "Session should contain follow-up message");
     }
 
     #[tokio::test]

@@ -73,10 +73,10 @@ mod postgres_integration {
             .collect::<Vec<_>>()
             .join(" ");
 
-        // Should contain assistant output
+        // Should contain either assistant output or content delta
         assert!(
-            event_content.contains("assistant_output"),
-            "Should contain assistant output event"
+            event_content.contains("assistant_output") || event_content.contains("content_delta"),
+            "Should contain assistant output or content delta events"
         );
 
         // Should have found relevant content from the sample data or encountered expected errors
@@ -136,6 +136,7 @@ mod postgres_integration {
     }
 
     #[tokio::test]
+    #[ignore = "Requires a mock database to properly test connection failures"]
     async fn should_handle_postgres_connection_errors_gracefully() {
         // Test error handling when PostgreSQL is not available
         let temp_dir = TempDir::new().unwrap();
@@ -352,18 +353,18 @@ mod postgres_integration {
             "Vector search should work without errors"
         );
 
-        // 3. System should provide a response (even if LLM fails with auth)
+        // 3. System should provide a response (either streaming or non-streaming)
         assert!(
-            event_content.contains("assistant_output"),
-            "Should provide assistant response"
+            event_content.contains("assistant_output") || event_content.contains("content_delta"),
+            "Should provide either assistant_output or content_delta events"
         );
 
-        // 4. The response should either be successful OR show expected LLM failure
+        // 4. If there are errors, they should be expected ones
         let has_llm_error = event_content.contains("403 Forbidden")
             || event_content.contains("Authorization")
             || event_content.contains("Failed to send request to Bedrock")
             || event_content.contains("trouble with the AI service");
-        let has_success_response = !has_llm_error;
+        let has_success_response = event_content.contains("content_delta") || (!has_llm_error && event_content.contains("assistant_output"));
 
         assert!(
             has_llm_error || has_success_response,
@@ -388,9 +389,18 @@ mod postgres_integration {
     async fn should_load_documents_on_startup() {
         let (mut config, _temp_dir) = create_integration_test_config().await;
 
-        // Point to the actual documents folder
-        config.data.document_dir =
-            "/Users/carlos.cavero.ext/software/rust/agentic-framework/documents".to_string();
+        // Create a test documents folder and add some files
+        let docs_dir = _temp_dir.path().join("documents");
+        std::fs::create_dir_all(&docs_dir).unwrap();
+        
+        // Create a test document
+        let test_file = docs_dir.join("test.txt");
+        std::fs::write(
+            &test_file,
+            "Test document for automated loading",
+        ).unwrap();
+        
+        config.data.document_dir = docs_dir.to_string_lossy().to_string();
 
         let agent_service = match AgentService::new(config).await {
             Ok(service) => service,

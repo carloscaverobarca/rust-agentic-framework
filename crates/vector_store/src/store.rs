@@ -23,26 +23,17 @@ impl VectorStore {
             .await
             .context("Failed to connect to PostgreSQL")?;
 
+        db_migrations::run_migrations(&database_url)
+            .await
+            .context("Failed to run database migrations")?;
+
+        tracing::info!("Vector store initialization completed successfully with migrations applied");
+
+
         Ok(Self {
             pool,
             embedding_dimensions,
         })
-    }
-
-    pub async fn initialize(&self) -> Result<()> {
-        tracing::info!(
-            "Initializing vector store with {} dimensions",
-            self.embedding_dimensions
-        );
-
-        // Create the pgvector extension if it doesn't exist
-        sqlx::query("CREATE EXTENSION IF NOT EXISTS vector")
-            .execute(&self.pool)
-            .await
-            .context("Failed to create vector extension")?;
-
-        tracing::info!("Vector store initialization completed successfully with optimized index");
-        Ok(())
     }
 
     pub async fn insert_document(&self, chunk: DocumentChunk) -> Result<Document> {

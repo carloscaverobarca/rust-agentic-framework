@@ -1,20 +1,16 @@
 [package]
-name = "vector_store"
+name = "db_migrations"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 agentic-core = { path = "../agentic-core" }
-db_migrations = { path = "../db_migrations" }
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono"] }
-pgvector = { version = "0.4", features = ["sqlx"] }
+refinery = { version = "0.8", features = ["tokio-postgres"] }
 tokio = { workspace = true }
 anyhow = { workspace = true }
-serde = { workspace = true }
 tracing = { workspace = true }
-serde_json = "1.0"
-uuid = { version = "1.0", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }
+tokio-postgres = "0.7"
 
 [dev-dependencies]
 tokio-test = "0.4"

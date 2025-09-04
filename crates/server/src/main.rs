@@ -338,17 +338,14 @@ mod tests {
                 println!("Debug - response content: {}", content); // Debug output
 
                 // Should contain properly processed response from AgentService
-                assert!(content.contains("event: assistant_output"));
+                assert!(
+                    content.contains("event: assistant_output") || content.contains("event: content_delta"),
+                    "Should contain either assistant_output or content_delta event"
+                );
                 // Should NOT contain the stub response
                 assert!(!content.contains("This is a stub response"));
-                // Should contain either the AgentService fallback response, an error event, or the structured error response
-                assert!(
-                    content.contains("Due to current limitations")
-                        || content.contains("embedding error")
-                        || content.contains("error_event")
-                        || content.contains("I'm sorry, I encountered an error")
-                        || content.contains("I'm having trouble with the AI service")
-                );
+                // Should contain a meaningful response about company policies (indicating successful fallback behavior)
+                assert!(content.contains("policies") || content.contains("onboarding") || content.contains("HR"));
             }
             Err(_) => {
                 // AgentService creation failed in test environment (expected)
@@ -449,8 +446,8 @@ mod tests {
                     "Should contain tool_usage event"
                 );
                 assert!(
-                    content.contains("event: assistant_output"),
-                    "Should contain assistant_output event"
+                    content.contains("event: assistant_output") || content.contains("event: content_delta"),
+                    "Should contain assistant_output or content_delta event"
                 );
                 assert!(
                     content.contains("file_summarizer"),
