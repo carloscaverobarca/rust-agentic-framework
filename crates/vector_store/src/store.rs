@@ -23,7 +23,7 @@ impl VectorStore {
             .await
             .context("Failed to connect to PostgreSQL")?;
 
-        db_migrations::run_migrations(database_url)
+        crate::run_migrations(database_url)
             .await
             .context("Failed to run database migrations")?;
 

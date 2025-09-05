@@ -1,5 +1,5 @@
 //! Integration tests for database migrations
-use db_migrations::run_migrations;
+use vector_store::run_migrations;
 
 #[tokio::test]
 #[ignore = "Requires a real database to properly test the migration"]
