@@ -19,3 +19,4 @@ tokio-postgres = "0.7"
 
 [dev-dependencies]
 tokio-test = "0.4"
+testcontainers = "0.15"
