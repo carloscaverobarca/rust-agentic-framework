@@ -67,36 +67,20 @@ This creates a PostgreSQL database with:
 
 ### 3. Configure Environment
 
-Create a `config.toml` file in the project root:
-
-```toml
-[embedding]
-provider = "fallback"  # or "cohere" for production
-
-[llm]
-primary = "anthropic.claude-sonnet-4-20250514-v1:0"
-fallback = "anthropic.claude-3-7-sonnet-20250219-v1:0"
-
-[pgvector]
-url = "postgresql://postgres:postgres@localhost:5432/chatbot"  # pragma: allowlist secret
-
-[data]
-document_dir = "./documents"
-```
-
 Set up your environment variables:
 
 ```bash
 export COHERE_API_KEY="your-cohere-api-key"  # pragma: allowlist secret
 export AWS_PROFILE="your-aws-profile-name"  # Optional, defaults to 'default'
 export AWS_REGION="eu-central-1"
+export LLM_PRIMARY_MODEL="anthropic.claude-sonnet-4-20250514-v1:0"
+export LLM_FALLBACK_MODEL="anthropic.claude-3-7-sonnet-20250219-v1:0"
+export PGVECTOR_URL="postgresql://username:password@host:5432/chatbot"  # pragma: allowlist secret
 ```
 
-#### LLM model overrides via environment variables
-
-The LLM model IDs from the `[llm]` section in `config.toml` can be overridden at runtime using environment variables. This is useful for switching models between environments (e.g., staging vs. prod) without changing files.
-
-Set these variables before running the server:
+Precedence:
+- If set, `PGVECTOR_URL`, `LLM_PRIMARY_MODEL` and `LLM_FALLBACK_MODEL` take precedence over `config.toml`.
+- If not set, values from `config.toml` are used.
 
 ### 4. Configure Pre-commit Hooks
 
@@ -123,28 +107,7 @@ Hooks run automatically on `git commit`. To run manually on all files:
 pre-commit run --all-files
 ```
 
-```bash
-export LLM_PRIMARY_MODEL="anthropic.claude-sonnet-4-20250514-v1:0"
-export LLM_FALLBACK_MODEL="anthropic.claude-3-7-sonnet-20250219-v1:0"
-```
-
-Precedence:
-- If set, `LLM_PRIMARY_MODEL` and `LLM_FALLBACK_MODEL` take precedence over `config.toml`.
-- If not set, values from `config.toml` are used.
-
-Implementation detail: overrides are applied centrally in configuration (`agentic-core`) via `LlmConfig::with_env_overrides()` and then passed to the LLM client during server startup.
-
-#### Database URL override via environment variable
-
-The `[pgvector].url` in `config.toml` can be overridden using the `PGVECTOR_URL` environment variable.
-
-```bash
-export PGVECTOR_URL="postgresql://username:password@host:5432/chatbot"  # pragma: allowlist secret
-```
-
-If `PGVECTOR_URL` is not set, the value from `config.toml` is used. The override is applied in `agentic-core` via `PgVectorConfig::with_env_overrides()` and used when initializing the vector store.
-
-### 4. Initialize Document Directory
+### 5. Initialize Document Directory
 
 Create a documents directory and add your knowledge base files:
 
@@ -154,7 +117,7 @@ echo "Company Policy: Remote work is allowed up to 3 days per week." > documents
 echo "Tech Stack: We use Rust for backend, TypeScript for frontend." > documents/tech_info.txt
 ```
 
-### 5. Run the Server
+### 6. Run the Server
 
 ```bash
 cargo run --bin server
