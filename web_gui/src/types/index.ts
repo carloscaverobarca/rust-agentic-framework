@@ -1,5 +1,5 @@
 export interface Message {
-  role: 'User' | 'Assistant' | 'Tool';
+  role: "User" | "Assistant" | "Tool";
   content: string;
   name?: string;
 }
@@ -17,7 +17,7 @@ export interface ToolUsageEvent {
 }
 
 export interface SSEEvent {
-  event: 'assistant_output' | 'tool_usage';
+  event: "assistant_output" | "tool_usage";
   data: string | ToolUsageEvent;
 }
 

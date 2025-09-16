@@ -10,7 +10,7 @@ primary = "anthropic.claude-sonnet-4-20250514-v1:0"
 fallback = "anthropic.claude-3-7-sonnet-20250219-v1:0`"
 
 [pgvector]
-url = "postgresql://test_user:test_password@localhost:5432/test_chatbot"
+url = "postgresql://test_user:test_password@localhost:5432/test_chatbot"  # pragma: allowlist secret
 
 [data]
 document_dir = "./documents"

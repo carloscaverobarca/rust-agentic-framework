@@ -1,11 +1,11 @@
-import { v4 as uuidv4 } from 'uuid';
-import { Message, PredictStreamRequest, ToolUsageEvent } from '../types';
+import { v4 as uuidv4 } from "uuid";
+import { Message, PredictStreamRequest, ToolUsageEvent } from "../types";
 
 export class ApiService {
   private baseUrl: string;
   private sessionId: string;
 
-  constructor(baseUrl: string = '') {
+  constructor(baseUrl: string = "") {
     this.baseUrl = baseUrl;
     this.sessionId = uuidv4();
   }
@@ -23,7 +23,7 @@ export class ApiService {
     onAssistantOutput: (content: string) => void,
     onToolUsage: (toolUsage: ToolUsageEvent) => void,
     onError: (error: string) => void,
-    onComplete: () => void
+    onComplete: () => void,
   ): Promise<void> {
     const request: PredictStreamRequest = {
       session_id: this.sessionId,
@@ -32,10 +32,10 @@ export class ApiService {
 
     try {
       const response = await fetch(`${this.baseUrl}/predict_stream`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
         },
         body: JSON.stringify(request),
       });
@@ -46,12 +46,12 @@ export class ApiService {
 
       const reader = response.body?.getReader();
       if (!reader) {
-        throw new Error('No response body reader available');
+        throw new Error("No response body reader available");
       }
 
       const decoder = new TextDecoder();
-      let buffer = '';
-      let currentEvent = '';
+      let buffer = "";
+      let currentEvent = "";
 
       try {
         while (true) {
@@ -62,46 +62,49 @@ export class ApiService {
           }
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.trim() === '') {
+            if (line.trim() === "") {
               // Empty line resets the event
-              currentEvent = '';
+              currentEvent = "";
               continue;
             }
-            
+
             try {
-              if (line.startsWith('event: ')) {
+              if (line.startsWith("event: ")) {
                 currentEvent = line.substring(7).trim();
                 continue;
               }
-              
-              if (line.startsWith('data: ')) {
+
+              if (line.startsWith("data: ")) {
                 const data = line.substring(6).trim();
-                
-                if (data === '[DONE]') {
+
+                if (data === "[DONE]") {
                   onComplete();
                   return;
                 }
 
                 const parsed = JSON.parse(data);
-                console.log('SSE Event:', currentEvent, 'Data:', parsed); // Debug logging
-                
-                if (currentEvent === 'assistant_output' || currentEvent === 'content_delta') {
+                console.log("SSE Event:", currentEvent, "Data:", parsed); // Debug logging
+
+                if (
+                  currentEvent === "assistant_output" ||
+                  currentEvent === "content_delta"
+                ) {
                   if (parsed.content !== undefined) {
                     onAssistantOutput(parsed.content);
                   }
-                } else if (currentEvent === 'tool_usage') {
+                } else if (currentEvent === "tool_usage") {
                   onToolUsage(parsed as ToolUsageEvent);
-                } else if (currentEvent === 'stream_end') {
+                } else if (currentEvent === "stream_end") {
                   onComplete();
                   return;
                 }
               }
             } catch (parseError) {
-              console.warn('Failed to parse SSE line:', line, parseError);
+              console.warn("Failed to parse SSE line:", line, parseError);
             }
           }
         }
@@ -109,7 +112,9 @@ export class ApiService {
         reader.releaseLock();
       }
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Unknown error occurred');
+      onError(
+        error instanceof Error ? error.message : "Unknown error occurred",
+      );
     }
   }
 }

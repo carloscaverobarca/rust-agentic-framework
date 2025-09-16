@@ -130,7 +130,7 @@ mod tests {
     #[tokio::test]
     async fn should_create_cohere_client_with_custom_config() {
         let config = CohereConfig {
-            api_key: "test-key".to_string(),
+            api_key: "test-key".to_string(), // pragma: allowlist secret
             model: "embed-multilingual-v3.0".to_string(),
             base_url: "https://custom.api.com".to_string(),
             timeout_secs: 60,
@@ -159,7 +159,7 @@ mod tests {
         // This test will fail until we implement proper mock server
         // For now, it demonstrates the expected interface
         let config = CohereConfig {
-            api_key: "mock-key".to_string(),
+            api_key: "mock-key".to_string(), // pragma: allowlist secret
             ..CohereConfig::default()
         };
         let client = CohereClient::new(config).unwrap();
@@ -174,7 +174,7 @@ mod tests {
     #[tokio::test]
     async fn should_handle_multiple_text_embeddings() {
         let config = CohereConfig {
-            api_key: "mock-key".to_string(),
+            api_key: "mock-key".to_string(), // pragma: allowlist secret
             ..CohereConfig::default()
         };
         let client = CohereClient::new(config).unwrap();
@@ -195,7 +195,7 @@ mod tests {
     #[tokio::test]
     async fn should_retry_on_failure() {
         let config = CohereConfig {
-            api_key: "invalid-key".to_string(),
+            api_key: "invalid-key".to_string(), // pragma: allowlist secret
             base_url: "https://nonexistent.api.com".to_string(),
             timeout_secs: 1, // Short timeout for fast test
             max_retries: 2,

@@ -1,22 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Message, ToolUsageEvent } from '../types';
-import { ApiService } from '../services/apiService';
-import { ChatMessage } from './ChatMessage';
-import { MessageInput } from './MessageInput';
+import React, { useState, useRef, useEffect } from "react";
+import { Message, ToolUsageEvent } from "../types";
+import { ApiService } from "../services/apiService";
+import { ChatMessage } from "./ChatMessage";
+import { MessageInput } from "./MessageInput";
 
 export const ChatBot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [currentResponse, setCurrentResponse] = useState<string>('');
+  const [currentResponse, setCurrentResponse] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
-  const [toolUsages, setToolUsages] = useState<Map<number, ToolUsageEvent>>(new Map());
+  const [toolUsages, setToolUsages] = useState<Map<number, ToolUsageEvent>>(
+    new Map(),
+  );
   const [error, setError] = useState<string | null>(null);
-  
+
   const apiService = useRef(new ApiService());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -27,25 +29,25 @@ export const ChatBot: React.FC = () => {
     if (isLoading || isStreaming) return;
 
     const userMessage: Message = {
-      role: 'User',
+      role: "User",
       content,
     };
 
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
-    setCurrentResponse('');
+    setCurrentResponse("");
     setError(null);
     setIsLoading(true);
     setIsStreaming(true);
 
-    let accumulatedResponse = '';
+    let accumulatedResponse = "";
 
     // Add a timeout to prevent getting stuck
     const timeoutId = setTimeout(() => {
-      console.warn('SSE stream timeout, resetting state');
+      console.warn("SSE stream timeout, resetting state");
       setIsLoading(false);
       setIsStreaming(false);
-      setError('Request timed out. Please try again.');
+      setError("Request timed out. Please try again.");
     }, 30000); // 30 second timeout
 
     try {
@@ -57,12 +59,12 @@ export const ChatBot: React.FC = () => {
         },
         (toolUsage: ToolUsageEvent) => {
           const toolMessage: Message = {
-            role: 'Tool',
+            role: "Tool",
             content: toolUsage.result,
             name: toolUsage.tool,
           };
-          setMessages(prev => [...prev, toolMessage]);
-          setToolUsages(prev => new Map(prev).set(prev.size, toolUsage));
+          setMessages((prev) => [...prev, toolMessage]);
+          setToolUsages((prev) => new Map(prev).set(prev.size, toolUsage));
         },
         (errorMessage: string) => {
           clearTimeout(timeoutId);
@@ -72,22 +74,25 @@ export const ChatBot: React.FC = () => {
         },
         () => {
           clearTimeout(timeoutId);
-          console.log('SSE stream completed, accumulated response:', accumulatedResponse);
+          console.log(
+            "SSE stream completed, accumulated response:",
+            accumulatedResponse,
+          );
           if (accumulatedResponse.trim()) {
             const assistantMessage: Message = {
-              role: 'Assistant',
+              role: "Assistant",
               content: accumulatedResponse,
             };
-            setMessages(prev => [...prev, assistantMessage]);
+            setMessages((prev) => [...prev, assistantMessage]);
           }
-          setCurrentResponse('');
+          setCurrentResponse("");
           setIsLoading(false);
           setIsStreaming(false);
-        }
+        },
       );
     } catch (err) {
       clearTimeout(timeoutId);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
       setIsLoading(false);
       setIsStreaming(false);
     }
@@ -95,7 +100,7 @@ export const ChatBot: React.FC = () => {
 
   const handleNewChat = () => {
     setMessages([]);
-    setCurrentResponse('');
+    setCurrentResponse("");
     setToolUsages(new Map());
     setError(null);
     setIsLoading(false);
@@ -104,8 +109,8 @@ export const ChatBot: React.FC = () => {
   };
 
   const handleReset = () => {
-    console.log('Manual reset triggered');
-    setCurrentResponse('');
+    console.log("Manual reset triggered");
+    setCurrentResponse("");
     setError(null);
     setIsLoading(false);
     setIsStreaming(false);
@@ -123,7 +128,7 @@ export const ChatBot: React.FC = () => {
             <button
               onClick={handleReset}
               className="new-chat-button"
-              style={{ backgroundColor: '#f56565', marginRight: '0.5rem' }}
+              style={{ backgroundColor: "#f56565", marginRight: "0.5rem" }}
             >
               Reset
             </button>
@@ -142,8 +147,14 @@ export const ChatBot: React.FC = () => {
         {messages.length === 0 && (
           <div className="welcome-message">
             <h2>👋 Welcome to the FAQ Assistant!</h2>
-            <p>Ask me anything about the company policies, procedures, or general questions.</p>
-            <p>I can also use tools like file summarization to help provide better answers.</p>
+            <p>
+              Ask me anything about the company policies, procedures, or general
+              questions.
+            </p>
+            <p>
+              I can also use tools like file summarization to help provide
+              better answers.
+            </p>
           </div>
         )}
 
@@ -162,10 +173,10 @@ export const ChatBot: React.FC = () => {
               <span className="streaming-indicator">✍️ Writing...</span>
             </div>
             <div className="message-content">
-              {currentResponse.split('\n').map((line, index) => (
+              {currentResponse.split("\n").map((line, index) => (
                 <React.Fragment key={index}>
                   {line}
-                  {index < currentResponse.split('\n').length - 1 && <br />}
+                  {index < currentResponse.split("\n").length - 1 && <br />}
                 </React.Fragment>
               ))}
               <span className="cursor">|</span>

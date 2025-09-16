@@ -26,7 +26,7 @@ mod postgres_integration {
             },
             pgvector: agentic_core::config::PgVectorConfig {
                 // Connect to the test PostgreSQL database running in Docker
-                url: "postgresql://test_user:test_password@localhost:5433/test_chatbot".to_string(),
+                url: "postgresql://test_user:test_password@localhost:5433/test_chatbot".to_string(), // pragma: allowlist secret
             },
             data: agentic_core::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),
@@ -154,7 +154,7 @@ mod postgres_integration {
             },
             pgvector: agentic_core::config::PgVectorConfig {
                 // Use invalid connection string
-                url: "postgresql://invalid:invalid@localhost:9999/nonexistent".to_string(),
+                url: "postgresql://invalid:invalid@localhost:9999/nonexistent".to_string(), // pragma: allowlist secret
             },
             data: agentic_core::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),

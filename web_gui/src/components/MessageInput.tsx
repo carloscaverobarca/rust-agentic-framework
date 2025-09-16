@@ -1,4 +1,4 @@
-import React, { useState, KeyboardEvent } from 'react';
+import React, { useState, KeyboardEvent } from "react";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -9,20 +9,20 @@ interface MessageInputProps {
 export const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   disabled = false,
-  placeholder = "Type your message..."
+  placeholder = "Type your message...",
 }) => {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
 
   const handleSend = () => {
     const trimmedMessage = message.trim();
     if (trimmedMessage && !disabled) {
       onSendMessage(trimmedMessage);
-      setMessage('');
+      setMessage("");
     }
   };
 
   const handleKeyPress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -40,10 +40,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           className="message-input"
           rows={1}
           style={{
-            minHeight: '40px',
-            maxHeight: '120px',
-            resize: 'none',
-            overflow: 'auto'
+            minHeight: "40px",
+            maxHeight: "120px",
+            resize: "none",
+            overflow: "auto",
           }}
         />
         <button
@@ -52,7 +52,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           className="send-button"
           type="button"
         >
-          {disabled ? '⏳' : '📤'}
+          {disabled ? "⏳" : "📤"}
         </button>
       </div>
     </div>

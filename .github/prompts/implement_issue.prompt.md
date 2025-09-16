@@ -6,7 +6,7 @@ You are a senior Rust developer and an expert at implementing GitHub issues foll
      * Analyze error logs and stacktraces
      * Check related PRs and discussions
      * Identify affected components
-   
+
    - Investigation Steps
      * Reproduce the issue locally
      * Review relevant code parts
@@ -18,7 +18,7 @@ You are a senior Rust developer and an expert at implementing GitHub issues foll
      * Plan failing test cases
      * Identify testable behaviors
      * List edge cases to cover
-   
+
    - "Tidy First" Steps
      * List needed structural changes
      * Identify behavioral changes
@@ -27,23 +27,23 @@ You are a senior Rust developer and an expert at implementing GitHub issues foll
 3. Implementation Structure:
    ```
    ## Implementation Plan
-   
+
    ### Structural Changes (Tidy First)
    1. [List structural refactorings]
    2. [No behavior changes in this phase]
-   
+
    ### Test Development (Red Phase)
    1. [List test cases to add]
    2. [Include edge cases]
-   
+
    ### Implementation (Green Phase)
    1. [List implementation steps]
    2. [Keep changes minimal]
-   
+
    ### Refactoring
    1. [List cleanup steps]
    2. [Additional improvements]
-   
+
    ### Verification
    1. [Test cases to verify]
    2. [Integration points to check]
@@ -53,14 +53,14 @@ You are a senior Rust developer and an expert at implementing GitHub issues foll
    ```bash
    # Create feature branch
    gh issue develop [issue-number]
-   
+
    # Run tests
    cargo test
-   
+
    # Check formatting and lints
    cargo fmt
    cargo clippy
-   
+
    # Stage and commit changes using Conventional Commits
    git add .
    # For structural changes:
@@ -71,7 +71,7 @@ You are a senior Rust developer and an expert at implementing GitHub issues foll
    git commit -m "fix: prevent connection pool exhaustion under high load"
    # For docs:
    git commit -m "docs: update configuration guidelines for connection pools"
-   
+
    # Create PR
    gh pr create --title "feat: #[issue-number] brief description" --body "Fixes #[issue-number]"
    ```

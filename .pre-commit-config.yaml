@@ -1,0 +1,72 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^target/
+      - id: end-of-file-fixer
+        exclude: ^target/
+      - id: check-yaml
+        exclude: ^target/
+      - id: check-toml
+        exclude: ^target/
+      - id: check-json
+        exclude: ^target/
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+        exclude: ^target/
+
+  - repo: https://github.com/doublify/pre-commit-rust
+    rev: v1.0
+    hooks:
+      - id: fmt
+        args: [--all]
+        pass_filenames: false
+      - id: clippy
+        args: [--all-targets, --all-features, --, -D, warnings]
+        pass_filenames: false
+      - id: cargo-check
+        args: [--all-targets, --all-features]
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        files: ^web_gui/.*\.(js|ts|tsx|json|css|html)$
+        exclude: ^web_gui/node_modules/
+
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.56.0
+    hooks:
+      - id: eslint
+        files: ^web_gui/.*\.(js|ts|tsx)$
+        exclude: ^web_gui/node_modules/
+        additional_dependencies:
+          - eslint@^8.56.0
+          - '@typescript-eslint/eslint-plugin@^6.0.0'
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        description: Detects high entropy strings that could be passwords, keys etc.
+        entry: detect-secrets-hook
+        language: python
+        exclude: |
+          (?x)(
+            ^target/|
+            ^web_gui/node_modules/|
+            \.secrets\.baseline$|
+            \.git/|
+            \.pre-commit-config\.yaml$
+          )
+
+# Configuration
+default_stages: [pre-commit]
+fail_fast: false
+minimum_pre_commit_version: '3.0.0'

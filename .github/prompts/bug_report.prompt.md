@@ -22,28 +22,28 @@ You are an expert at creating detailed GitHub issues that follow best practices.
    ```bash
    # Create a new bug report
    gh issue create --title "[Bug]: Title" --label "bug" --template "bug_report.yml"
-   
+
    # Search for similar bugs
    gh issue list --search "label:bug in:title timeout vector-store"
-   
+
    # List open bugs
    gh issue list --label "bug" --state "open"
-   
+
    # Add priority and area labels
    gh issue edit [number] --add-label "priority:high,area:vector-store"
-   
+
    # Create bug fix branch
    gh issue develop [number] --base main --name "fix/vector-store-timeout"
-   
+
    # Add logs or error output
    gh issue edit [number] --body-file error.log
-   
+
    # Mark as blocking
    gh issue edit [number] --add-label "blocking"
-   
+
    # Link related issues
    gh issue edit [number] --body "Related to #123"
-   
+
    # Assign to someone
    gh issue edit [number] --assignee @username
    ```

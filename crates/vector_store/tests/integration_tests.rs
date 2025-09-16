@@ -63,7 +63,7 @@ async fn should_apply_migrations_in_order() {
     let host_port = container.get_host_port_ipv4(5432);
 
     let db_url = format!(
-        "postgresql://test_user:test_password@localhost:{}/test_chatbot",
+        "postgresql://test_user:test_password@localhost:{}/test_chatbot", // pragma: allowlist secret
         host_port
     );
 
@@ -94,8 +94,8 @@ async fn should_apply_migrations_in_order() {
             let exists = client
                 .query_one(
                     "SELECT EXISTS (
-                            SELECT FROM pg_tables 
-                            WHERE schemaname = 'public' 
+                            SELECT FROM pg_tables
+                            WHERE schemaname = 'public'
                             AND tablename = 'documents'
                         )",
                     &[],

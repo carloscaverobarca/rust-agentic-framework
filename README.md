@@ -58,7 +58,7 @@ docker-compose up -d
 ```
 
 This creates a PostgreSQL database with:
-- **Host**: localhost:5432 
+- **Host**: localhost:5432
 - **Database**: chatbot
 - **User**: postgres
 - **Password**: postgres
@@ -78,7 +78,7 @@ primary = "anthropic.claude-sonnet-4-20250514-v1:0"
 fallback = "anthropic.claude-3-7-sonnet-20250219-v1:0"
 
 [pgvector]
-url = "postgresql://postgres:postgres@localhost:5432/chatbot"
+url = "postgresql://postgres:postgres@localhost:5432/chatbot"  # pragma: allowlist secret
 
 [data]
 document_dir = "./documents"
@@ -87,7 +87,7 @@ document_dir = "./documents"
 Set up your environment variables:
 
 ```bash
-export COHERE_API_KEY="your-cohere-api-key"
+export COHERE_API_KEY="your-cohere-api-key"  # pragma: allowlist secret
 export AWS_PROFILE="your-aws-profile-name"  # Optional, defaults to 'default'
 export AWS_REGION="eu-central-1"
 ```
@@ -97,6 +97,31 @@ export AWS_REGION="eu-central-1"
 The LLM model IDs from the `[llm]` section in `config.toml` can be overridden at runtime using environment variables. This is useful for switching models between environments (e.g., staging vs. prod) without changing files.
 
 Set these variables before running the server:
+
+### 4. Configure Pre-commit Hooks
+
+This project uses pre-commit hooks to ensure code quality and consistency. To set up pre-commit:
+
+1. Install pre-commit:
+```bash
+pip install pre-commit
+```
+
+2. Install the git hooks:
+```bash
+pre-commit install
+```
+
+The pre-commit configuration includes:
+- Code formatting (Rust fmt, Prettier)
+- Linting (Clippy, ESLint)
+- File checks (YAML, TOML, JSON validation)
+- Other quality checks (trailing whitespace, merge conflicts, etc.)
+
+Hooks run automatically on `git commit`. To run manually on all files:
+```bash
+pre-commit run --all-files
+```
 
 ```bash
 export LLM_PRIMARY_MODEL="anthropic.claude-sonnet-4-20250514-v1:0"
@@ -114,7 +139,7 @@ Implementation detail: overrides are applied centrally in configuration (`agenti
 The `[pgvector].url` in `config.toml` can be overridden using the `PGVECTOR_URL` environment variable.
 
 ```bash
-export PGVECTOR_URL="postgresql://username:password@host:5432/chatbot"
+export PGVECTOR_URL="postgresql://username:password@host:5432/chatbot"  # pragma: allowlist secret
 ```
 
 If `PGVECTOR_URL` is not set, the value from `config.toml` is used. The override is applied in `agentic-core` via `PgVectorConfig::with_env_overrides()` and used when initializing the vector store.
@@ -199,7 +224,7 @@ Attach an IAM role with the `bedrock:InvokeModel` permission.
 #### 2. Set Environment Variable
 
 ```bash
-export COHERE_API_KEY="your-cohere-api-key"
+export COHERE_API_KEY="your-cohere-api-key" # pragma: allowlist secret
 ```
 
 #### 3. Configure in config.toml
@@ -238,8 +263,8 @@ CREATE TABLE documents (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX documents_embedding_idx 
-ON documents USING ivfflat (embedding vector_cosine_ops) 
+CREATE INDEX documents_embedding_idx
+ON documents USING ivfflat (embedding vector_cosine_ops)
 WITH (lists = 100);
 ```
 
@@ -247,7 +272,7 @@ WITH (lists = 100);
 
 ```toml
 [pgvector]
-url = "postgresql://username:password@localhost:5432/chatbot"
+url = "postgresql://username:password@localhost:5432/chatbot" # pragma: allowlist secret
 ```
 
 #### Docker Setup (Development)
@@ -283,7 +308,7 @@ curl -N -H "Content-Type: application/json" \
        "session_id": "550e8400-e29b-41d4-a716-446655440000",
        "messages": [
          {
-           "role": "User", 
+           "role": "User",
            "content": "What is our remote work policy?",
            "name": null
          }
@@ -320,7 +345,7 @@ The server returns Server-Sent Events in this format:
 event: tool_usage
 data: {"tool": "file_summarizer", "args": {"file_path": "./documents/hr_policy.txt"}, "result": "File summary...", "duration_ms": 150}
 
-event: assistant_output  
+event: assistant_output
 data: {"content": "Based on the HR policy document, our remote work policy allows..."}
 ```
 
@@ -380,7 +405,7 @@ echo "New company policy..." > documents/new_policy.txt
 
 The file summarizer tool supports:
 - `.txt` - Plain text files
-- `.md` - Markdown files  
+- `.md` - Markdown files
 - `.rs` - Rust source files (with function/struct/impl counting)
 - `.py` - Python files (with function/class/import counting)
 - `.js`, `.ts` - JavaScript/TypeScript files
@@ -397,7 +422,7 @@ The system includes comprehensive error handling:
 
 - **EmbeddingError**: Issues with Cohere API or embedding generation
 - **LlmError**: AWS Bedrock connectivity or model issues
-- **DatabaseError**: PostgreSQL connection or query failures  
+- **DatabaseError**: PostgreSQL connection or query failures
 - **ToolError**: File access or tool execution problems
 - **ConfigError**: Configuration file or environment issues
 
@@ -420,7 +445,7 @@ data: {"error_type": "LlmError", "message": "AWS Bedrock timeout", "retryable": 
 - Verify pgvector extension: `psql -c "SELECT * FROM pg_extension WHERE extname='vector';"`
 - For testing with fallback: Use SQLite URL in config for in-memory testing
 
-#### "Cohere API error"  
+#### "Cohere API error"
 - Verify API key: `echo $COHERE_API_KEY`
 - Check API quota at cohere.com dashboard
 - Use fallback provider for testing: Set `provider = "fallback"` in config
@@ -469,10 +494,10 @@ For production deployment:
 
 ```bash
 export RUST_LOG=info
-export COHERE_API_KEY="production-key"
+export COHERE_API_KEY="production-key"  # pragma: allowlist secret
 export AWS_PROFILE="production-profile"  # Optional, defaults to 'default'
-export AWS_REGION="eu-central-1" 
-export DATABASE_URL="postgresql://user:pass@prod-db:5432/chatbot"
+export AWS_REGION="eu-central-1"
+export DATABASE_URL="postgresql://user:pass@prod-db:5432/chatbot"  # pragma: allowlist secret
 ```
 
 ## Performance Considerations
@@ -500,7 +525,7 @@ export DATABASE_URL="postgresql://user:pass@prod-db:5432/chatbot"
 The project includes an optional React TypeScript frontend in the `web_gui/` directory:
 
 - **React 18** with TypeScript
-- **Vite 4** for development and building  
+- **Vite 4** for development and building
 - **SSE client** for real-time streaming responses
 - **Modern UI** with responsive design and chat interface
 

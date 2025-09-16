@@ -10,7 +10,7 @@ services:
     environment:
       POSTGRES_DB: test_chatbot
       POSTGRES_USER: test_user
-      POSTGRES_PASSWORD: test_password
+      POSTGRES_PASSWORD: test_password  # pragma: allowlist secret
     restart: always
     healthcheck:
       test: pg_isready -d test_chatbot -U test_user

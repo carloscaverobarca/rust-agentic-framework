@@ -773,9 +773,9 @@ mod tests {
         // 1. We get an AI service error (indicating vector search worked and found documents, then tried LLM)
         // 2. OR we get the actual content from the inserted document (ideal case)
         // The AI service error confirms that the vector search pipeline is working correctly
-        assert!(event_content.contains("I'm having trouble with the AI service") || 
-               event_content.contains("onboarding") || event_content.contains("HR") || 
-               event_content.contains("employees"), 
+        assert!(event_content.contains("I'm having trouble with the AI service") ||
+               event_content.contains("onboarding") || event_content.contains("HR") ||
+               event_content.contains("employees"),
                "Response should show AI service error (indicating search worked) or contain context from inserted document. Got: {}", event_content);
     }
 

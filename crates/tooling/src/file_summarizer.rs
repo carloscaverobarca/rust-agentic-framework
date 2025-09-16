@@ -298,7 +298,7 @@ from typing import List
 class TestClass:
     def __init__(self):
         pass
-    
+
     def method(self):
         return "test"
 

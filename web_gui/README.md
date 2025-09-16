@@ -24,7 +24,7 @@ A modern React TypeScript web interface for the Agentic FAQ Assistant. This appl
 
 ### Prerequisites
 
-- Node.js 16+ 
+- Node.js 16+
 - npm or yarn
 - Running Rust backend server on port 3000
 

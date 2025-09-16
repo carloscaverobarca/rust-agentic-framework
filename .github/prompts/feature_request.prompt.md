@@ -23,22 +23,22 @@ You are an expert at creating detailed GitHub issues that follow best practices.
    ```bash
    # Create a new feature request
    gh issue create --title "[Feature]: Title" --label "enhancement" --template "feature_request.yml"
-   
+
    # List existing feature requests
    gh issue list --label "enhancement"
-   
+
    # Search for similar features
    gh issue list --search "label:enhancement in:title Azure OpenAI"
-   
+
    # Add additional labels
    gh issue edit [number] --add-label "priority:high"
-   
+
    # Assign to someone
    gh issue edit [number] --assignee @username
-   
+
    # Create a development branch
    gh issue develop [number] --base main --name "feature/azure-openai-support"
-   
+
    # Link related issues
    gh issue edit [number] --body "Related to #123"
    ```

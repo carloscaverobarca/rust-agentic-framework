@@ -91,7 +91,7 @@ Example for **Phase 2 – Server Skeleton**:
 
 ## 4. LLM Code‑Generation Prompts
 
-> Feed prompts **sequentially**.  
+> Feed prompts **sequentially**.
 > After each generated diff, run tests; proceed only when green.
 
 ### Prompt Formatting
@@ -104,26 +104,26 @@ Example for **Phase 2 – Server Skeleton**:
 
 ```text
 🔖 0‑A‑1
-Create a new Cargo **workspace** named `agentic_chatbot`.  
-Add a root `Cargo.toml` with `[workspace] members = ["crates/*"]` and `.gitignore` (Rust + VSCode).  
-Do NOT create any crates yet.  
+Create a new Cargo **workspace** named `agentic_chatbot`.
+Add a root `Cargo.toml` with `[workspace] members = ["crates/*"]` and `.gitignore` (Rust + VSCode).
+Do NOT create any crates yet.
 Return the complete file list and contents.
 ```
 
 ```text
 🔖 0‑A‑2
-Inside `crates`, scaffold two crates:  
-1. `core` (library) with empty `lib.rs`.  
-2. `server` (binary) with `main.rs` printing "stub".  
-Update workspace `Cargo.toml`.  
+Inside `crates`, scaffold two crates:
+1. `core` (library) with empty `lib.rs`.
+2. `server` (binary) with `main.rs` printing "stub".
+Update workspace `Cargo.toml`.
 Ensure `cargo check` passes.
 ```
 
 ```text
 🔖 0‑B‑1
-Add GitHub Actions workflow `.github/workflows/ci.yml` that on `push`/`pull_request`:  
-- Sets up Rust stable.  
-- Runs `cargo fmt -- --check`, `cargo clippy --all -- -D warnings`, `cargo test`.  
+Add GitHub Actions workflow `.github/workflows/ci.yml` that on `push`/`pull_request`:
+- Sets up Rust stable.
+- Runs `cargo fmt -- --check`, `cargo clippy --all -- -D warnings`, `cargo test`.
 Provide full YAML.
 ```
 
@@ -136,14 +136,14 @@ In `core`, define enum `Role { User, Assistant, Tool }` and struct `Message { ro
 
 ```text
 🔖 1‑B‑1
-Implement `Config` struct in `core` with fields mirroring `config.toml`.  
-Add `config::load()` that reads `CONFIG_PATH` env (default `./config.toml`).  
+Implement `Config` struct in `core` with fields mirroring `config.toml`.
+Add `config::load()` that reads `CONFIG_PATH` env (default `./config.toml`).
 Unit test with a temp file.
 ```
 
 ```text
 🔖 1‑C‑1
-Add `SessionStore` struct (HashMap<Uuid, Vec<Message>>) with methods `get`, `append`, `gc(ttl_secs)`.  
+Add `SessionStore` struct (HashMap<Uuid, Vec<Message>>) with methods `get`, `append`, `gc(ttl_secs)`.
 Cover with unit tests using `tokio::time::pause`.
 ```
 
