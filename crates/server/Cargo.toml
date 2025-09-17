@@ -9,7 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 embeddings = { path = "../embeddings" }
-vector_store = { path = "../vector_store" }
+store = { path = "../store" }
 llm = { path = "../llm" }
 tooling = { path = "../tooling" }
 tokio = { workspace = true }

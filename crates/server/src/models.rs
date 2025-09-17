@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
+use store::Message;
 use uuid::Uuid;
-use vector_store::Message;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PredictStreamRequest {
@@ -16,7 +16,7 @@ pub struct PredictStreamResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vector_store::Role;
+    use store::Role;
 
     #[test]
     fn should_serialize_predict_stream_request() {

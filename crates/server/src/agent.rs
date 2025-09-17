@@ -10,10 +10,10 @@ use log::info;
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
+use store::{Document, DocumentChunk, SearchResult, VectorStore};
+use store::{Message, RedisSessionStore, Role};
 use tooling::{FileSummarizerTool, ToolInput, ToolRegistry};
 use uuid::Uuid;
-use vector_store::{Document, DocumentChunk, SearchResult, VectorStore};
-use vector_store::{Message, RedisSessionStore, Role};
 
 // Simple in-memory vector store for testing
 pub struct InMemoryVectorStore {
@@ -697,9 +697,8 @@ mod tests {
             name: None,
         }];
 
-        // Mock search results
         use chrono::Utc;
-        use vector_store::Document;
+        use store::Document;
 
         let doc = Document {
             id: Uuid::new_v4(),

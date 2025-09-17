@@ -232,8 +232,8 @@ mod tests {
 
     #[tokio::test]
     async fn should_return_sse_stream_for_predict_stream_endpoint() {
+        use store::{Message, Role};
         use uuid::Uuid;
-        use vector_store::{Message, Role};
 
         let app = create_app();
 
@@ -280,8 +280,8 @@ mod tests {
     #[tokio::test]
     #[ignore = "Requires a mock redis database to properly test connection failures"]
     async fn should_use_agent_service_in_predict_stream_endpoint() {
+        use store::{Message, Role};
         use uuid::Uuid;
-        use vector_store::{Message, Role};
 
         // Create test config and mock AgentService directly
         let temp_dir = tempfile::TempDir::new().unwrap();
@@ -377,8 +377,8 @@ mod tests {
     #[ignore = "Refactor how the postgres vector store and agent is initialized to allow testing"]
     async fn should_handle_full_chat_flow_with_tool_usage() {
         use std::fs;
+        use store::{Message, Role};
         use uuid::Uuid;
-        use vector_store::{Message, Role};
 
         // This test will initially fail because we need to create test infrastructure
         // for full integration testing including file setup and tool detection

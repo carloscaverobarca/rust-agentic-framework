@@ -1,8 +1,8 @@
 use server::agent::AgentService;
 use server::config::Config;
+use store::{Message, Role};
 use tempfile::TempDir;
 use uuid::Uuid;
-use vector_store::{Message, Role};
 
 /// Integration tests that use real PostgreSQL database
 /// These tests require docker-compose.test.yml to be running

@@ -1,10 +1,10 @@
 //! Integration tests for database migrations
 use std::time::Duration;
+use store::run_migrations;
 use testcontainers::core::WaitFor;
 use testcontainers::{clients, GenericImage};
 use tokio::time::sleep;
 use tokio_postgres::NoTls;
-use vector_store::run_migrations;
 
 /// Helper function to wait for database to be ready with retries
 async fn wait_for_database_ready(
