@@ -8,7 +8,11 @@ use log::{error, info, warn};
 use serde_json::{json, Value};
 use std::sync::Arc;
 
+// Import the server library to make config available
+use server as _;
+
 pub mod agent;
+pub mod config;
 pub mod errors;
 pub mod models;
 pub mod sse;
@@ -92,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Starting Agentic Framework server");
 
     // Load configuration
-    let config = agentic_core::config::Config::load_from_env().unwrap_or_else(|_| {
+    let config = crate::config::Config::load_from_env().unwrap_or_else(|_| {
         warn!("Warning: Could not load config, using development defaults");
         create_development_config()
     });
@@ -150,22 +154,22 @@ async fn run_server_with_stub() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn create_development_config() -> agentic_core::config::Config {
-    agentic_core::config::Config {
-        embedding: agentic_core::config::EmbeddingConfig {
+fn create_development_config() -> crate::config::Config {
+    crate::config::Config {
+        embedding: agentic_core::EmbeddingConfig {
             provider: "fallback".to_string(),
             model: None,
             aws_region: None,
             dimensions: None,
         },
-        llm: agentic_core::config::LlmConfig {
+        llm: crate::config::LlmConfig {
             primary: "claude-sonnet-v4".to_string(),
             fallback: "claude-sonnet-v3.7".to_string(),
         },
-        pgvector: agentic_core::config::PgVectorConfig {
+        pgvector: crate::config::PgVectorConfig {
             url: "sqlite://./dev.db".to_string(),
         },
-        data: agentic_core::config::DataConfig {
+        data: crate::config::DataConfig {
             document_dir: "./data".to_string(),
         },
     }
@@ -278,21 +282,21 @@ mod tests {
         let temp_dir = tempfile::TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
 
-        let config = agentic_core::config::Config {
-            embedding: agentic_core::config::EmbeddingConfig {
+        let config = crate::config::Config {
+            embedding: agentic_core::EmbeddingConfig {
                 provider: "fallback".to_string(),
                 model: None,
                 aws_region: None,
                 dimensions: None,
             },
-            llm: agentic_core::config::LlmConfig {
+            llm: crate::config::LlmConfig {
                 primary: "claude-sonnet-v4".to_string(),
                 fallback: "claude-sonnet-v3.7".to_string(),
             },
-            pgvector: agentic_core::config::PgVectorConfig {
+            pgvector: crate::config::PgVectorConfig {
                 url: format!("sqlite://{}", db_path.display()),
             },
-            data: agentic_core::config::DataConfig {
+            data: crate::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),
             },
         };
@@ -387,21 +391,21 @@ mod tests {
         )
         .unwrap();
 
-        let config = agentic_core::config::Config {
-            embedding: agentic_core::config::EmbeddingConfig {
+        let config = crate::config::Config {
+            embedding: agentic_core::EmbeddingConfig {
                 provider: "fallback".to_string(),
                 model: None,
                 aws_region: None,
                 dimensions: None,
             },
-            llm: agentic_core::config::LlmConfig {
+            llm: crate::config::LlmConfig {
                 primary: "claude-sonnet-v4".to_string(),
                 fallback: "claude-sonnet-v3.7".to_string(),
             },
-            pgvector: agentic_core::config::PgVectorConfig {
+            pgvector: crate::config::PgVectorConfig {
                 url: format!("sqlite://{}", db_path.display()),
             },
-            data: agentic_core::config::DataConfig {
+            data: crate::config::DataConfig {
                 document_dir: data_dir.to_string_lossy().to_string(),
             },
         };

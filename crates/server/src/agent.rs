@@ -1,5 +1,6 @@
+use crate::config::Config;
 use crate::sse::{create_assistant_output_event, create_tool_usage_event};
-use agentic_core::{config::Config, session::SessionStore, Message, Role};
+use agentic_core::{session::SessionStore, Message, Role};
 use anyhow::{Context, Result};
 use axum::response::sse::Event;
 use chrono::Utc;
@@ -580,20 +581,20 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         let config = Config {
-            embedding: agentic_core::config::EmbeddingConfig {
+            embedding: agentic_core::EmbeddingConfig {
                 provider: "fallback".to_string(),
                 model: None,
                 aws_region: None,
                 dimensions: None,
             },
-            llm: agentic_core::config::LlmConfig {
+            llm: crate::config::LlmConfig {
                 primary: "claude-sonnet-v4".to_string(),
                 fallback: "claude-sonnet-v3.7".to_string(),
             },
-            pgvector: agentic_core::config::PgVectorConfig {
+            pgvector: crate::config::PgVectorConfig {
                 url: format!("sqlite://{}", db_path.display()),
             },
-            data: agentic_core::config::DataConfig {
+            data: crate::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),
             },
         };
@@ -915,20 +916,20 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         let config = Config {
-            embedding: agentic_core::config::EmbeddingConfig {
+            embedding: agentic_core::EmbeddingConfig {
                 provider: "fallback".to_string(),
                 model: None,
                 aws_region: None,
                 dimensions: None,
             },
-            llm: agentic_core::config::LlmConfig {
+            llm: crate::config::LlmConfig {
                 primary: "custom-primary-model".to_string(),
                 fallback: "custom-fallback-model".to_string(),
             },
-            pgvector: agentic_core::config::PgVectorConfig {
+            pgvector: crate::config::PgVectorConfig {
                 url: format!("sqlite://{}", db_path.display()),
             },
-            data: agentic_core::config::DataConfig {
+            data: crate::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),
             },
         };
@@ -963,20 +964,20 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         let config = Config {
-            embedding: agentic_core::config::EmbeddingConfig {
+            embedding: agentic_core::EmbeddingConfig {
                 provider: "bedrock-cohere".to_string(),
                 model: Some("cohere.embed-english-v3".to_string()),
                 aws_region: Some("eu-west-1".to_string()),
                 dimensions: None,
             },
-            llm: agentic_core::config::LlmConfig {
+            llm: crate::config::LlmConfig {
                 primary: "claude-sonnet-v4".to_string(),
                 fallback: "claude-sonnet-v3.7".to_string(),
             },
-            pgvector: agentic_core::config::PgVectorConfig {
+            pgvector: crate::config::PgVectorConfig {
                 url: format!("sqlite://{}", db_path.display()),
             },
-            data: agentic_core::config::DataConfig {
+            data: crate::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),
             },
         };

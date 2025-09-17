@@ -1,7 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-pub mod config;
 pub mod session;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EmbeddingConfig {
+    pub provider: String,
+    pub model: Option<String>,
+    pub aws_region: Option<String>,
+    pub dimensions: Option<usize>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Role {

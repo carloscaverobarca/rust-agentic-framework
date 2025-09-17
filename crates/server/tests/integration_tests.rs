@@ -1,5 +1,6 @@
-use agentic_core::{config::Config, Message, Role};
+use agentic_core::{Message, Role};
 use server::agent::AgentService;
+use server::config::Config;
 use tempfile::TempDir;
 use uuid::Uuid;
 
@@ -14,21 +15,21 @@ mod postgres_integration {
         let temp_dir = TempDir::new().unwrap();
 
         let config = Config {
-            embedding: agentic_core::config::EmbeddingConfig {
+            embedding: agentic_core::EmbeddingConfig {
                 provider: "fallback".to_string(), // Use fallback to avoid external API calls
                 model: None,
                 aws_region: None,
                 dimensions: None,
             },
-            llm: agentic_core::config::LlmConfig {
+            llm: server::config::LlmConfig {
                 primary: "claude-sonnet-v4".to_string(),
                 fallback: "claude-sonnet-v3.7".to_string(),
             },
-            pgvector: agentic_core::config::PgVectorConfig {
+            pgvector: server::config::PgVectorConfig {
                 // Connect to the test PostgreSQL database running in Docker
                 url: "postgresql://test_user:test_password@localhost:5433/test_chatbot".to_string(), // pragma: allowlist secret
             },
-            data: agentic_core::config::DataConfig {
+            data: server::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),
             },
         };
@@ -142,21 +143,21 @@ mod postgres_integration {
         let temp_dir = TempDir::new().unwrap();
 
         let bad_config = Config {
-            embedding: agentic_core::config::EmbeddingConfig {
+            embedding: agentic_core::EmbeddingConfig {
                 provider: "fallback".to_string(),
                 model: None,
                 aws_region: None,
                 dimensions: None,
             },
-            llm: agentic_core::config::LlmConfig {
+            llm: server::config::LlmConfig {
                 primary: "claude-sonnet-v4".to_string(),
                 fallback: "claude-sonnet-v3.7".to_string(),
             },
-            pgvector: agentic_core::config::PgVectorConfig {
+            pgvector: server::config::PgVectorConfig {
                 // Use invalid connection string
                 url: "postgresql://invalid:invalid@localhost:9999/nonexistent".to_string(), // pragma: allowlist secret
             },
-            data: agentic_core::config::DataConfig {
+            data: server::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),
             },
         };

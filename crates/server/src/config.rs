@@ -1,3 +1,4 @@
+use agentic_core::EmbeddingConfig;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
@@ -9,14 +10,6 @@ pub struct Config {
     pub llm: LlmConfig,
     pub pgvector: PgVectorConfig,
     pub data: DataConfig,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct EmbeddingConfig {
-    pub provider: String,
-    pub model: Option<String>,
-    pub aws_region: Option<String>,
-    pub dimensions: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

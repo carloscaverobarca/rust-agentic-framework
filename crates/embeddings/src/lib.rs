@@ -11,7 +11,7 @@ pub use chunker::{ChunkConfig, TextChunk, TextChunker};
 pub use cohere::{CohereClient, CohereConfig};
 pub use fallback::FallbackEmbeddingProvider;
 
-use agentic_core::config::EmbeddingConfig;
+use agentic_core::EmbeddingConfig;
 use anyhow::Result;
 
 type EmbedFuture<'a> =
