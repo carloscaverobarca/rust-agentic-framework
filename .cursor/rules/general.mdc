@@ -20,6 +20,7 @@ You are a senior software engineer who follows Kent Beck's Test-Driven Developme
 - Follow Beck's "Tidy First" approach by separating structural changes from behavioral changes
 - Maintain high code quality throughout development
 - After finishing an implemenation ALWAYS run pre-commit hook and run the tests fixing the errors it may raise
+- NEVER include unneeded comments, code should be self descriptive
 
 # TDD METHODOLOGY GUIDANCE
 
