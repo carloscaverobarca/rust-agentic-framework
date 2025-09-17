@@ -1,8 +1,8 @@
-use agentic_core::{Message, Role};
 use server::agent::AgentService;
 use server::config::Config;
 use tempfile::TempDir;
 use uuid::Uuid;
+use vector_store::{Message, Role};
 
 /// Integration tests that use real PostgreSQL database
 /// These tests require docker-compose.test.yml to be running
@@ -15,7 +15,7 @@ mod postgres_integration {
         let temp_dir = TempDir::new().unwrap();
 
         let config = Config {
-            embedding: agentic_core::EmbeddingConfig {
+            embedding: embeddings::EmbeddingConfig {
                 provider: "fallback".to_string(), // Use fallback to avoid external API calls
                 model: None,
                 aws_region: None,
@@ -28,6 +28,10 @@ mod postgres_integration {
             pgvector: server::config::PgVectorConfig {
                 // Connect to the test PostgreSQL database running in Docker
                 url: "postgresql://test_user:test_password@localhost:5433/test_chatbot".to_string(), // pragma: allowlist secret
+            },
+            redis: server::config::RedisConfig {
+                url: "redis://localhost:6379".to_string(),
+                session_ttl_seconds: 3600,
             },
             data: server::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),
@@ -143,7 +147,7 @@ mod postgres_integration {
         let temp_dir = TempDir::new().unwrap();
 
         let bad_config = Config {
-            embedding: agentic_core::EmbeddingConfig {
+            embedding: embeddings::EmbeddingConfig {
                 provider: "fallback".to_string(),
                 model: None,
                 aws_region: None,
@@ -156,6 +160,10 @@ mod postgres_integration {
             pgvector: server::config::PgVectorConfig {
                 // Use invalid connection string
                 url: "postgresql://invalid:invalid@localhost:9999/nonexistent".to_string(), // pragma: allowlist secret
+            },
+            redis: server::config::RedisConfig {
+                url: "redis://localhost:6379".to_string(),
+                session_ttl_seconds: 3600,
             },
             data: server::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),

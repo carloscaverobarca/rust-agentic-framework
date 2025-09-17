@@ -1,4 +1,4 @@
-use agentic_core::EmbeddingConfig;
+use embeddings::EmbeddingConfig;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
@@ -9,6 +9,7 @@ pub struct Config {
     pub embedding: EmbeddingConfig,
     pub llm: LlmConfig,
     pub pgvector: PgVectorConfig,
+    pub redis: RedisConfig,
     pub data: DataConfig,
 }
 
@@ -35,6 +36,26 @@ impl PgVectorConfig {
     pub fn with_env_overrides(&self) -> Self {
         let url = env::var("PGVECTOR_URL").unwrap_or_else(|_| self.url.clone());
         Self { url }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RedisConfig {
+    pub url: String,
+    pub session_ttl_seconds: u64,
+}
+
+impl RedisConfig {
+    pub fn with_env_overrides(&self) -> Self {
+        let url = env::var("REDIS_URL").unwrap_or_else(|_| self.url.clone());
+        let session_ttl_seconds = env::var("REDIS_SESSION_TTL_SECONDS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(self.session_ttl_seconds);
+        Self {
+            url,
+            session_ttl_seconds,
+        }
     }
 }
 
@@ -79,6 +100,10 @@ fallback = "claude-sonnet-v3.7"
 [pgvector]
 url = "postgres://localhost:5432/chatbot"
 
+[redis]
+url = "redis://localhost:6379"
+session_ttl_seconds = 86400
+
 [data]
 document_dir = "./data/faq_docs"
 "#;
@@ -105,6 +130,10 @@ fallback = "claude-sonnet-v3.7"
 [pgvector]
 url = "postgres://localhost:5432/chatbot"
 
+[redis]
+url = "redis://localhost:6379"
+session_ttl_seconds = 86400
+
 [data]
 document_dir = "./data/faq_docs"
 "#;
@@ -130,6 +159,10 @@ fallback = "claude-sonnet-v3.7"
 
 [pgvector]
 url = "postgres://localhost:5432/chatbot"
+
+[redis]
+url = "redis://localhost:6379"
+session_ttl_seconds = 86400
 
 [data]
 document_dir = "./data/faq_docs"
@@ -188,6 +221,10 @@ fallback = "claude-sonnet-v3.7"
 
 [pgvector]
 url = "postgres://localhost:5432/chatbot"
+
+[redis]
+url = "redis://localhost:6379"
+session_ttl_seconds = 86400
 
 [data]
 document_dir = "./data/faq_docs"

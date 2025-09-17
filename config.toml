@@ -12,6 +12,10 @@ fallback = "anthropic.claude-3-7-sonnet-20250219-v1:0`"
 [pgvector]
 url = "postgresql://test_user:test_password@localhost:5432/test_chatbot"  # pragma: allowlist secret
 
+[redis]
+url = "redis://localhost:6379"
+session_ttl_seconds = 86400  # 24 hours
+
 [data]
 document_dir = "./documents"
 

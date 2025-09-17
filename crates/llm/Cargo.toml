@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-agentic-core = { path = "../agentic-core" }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }

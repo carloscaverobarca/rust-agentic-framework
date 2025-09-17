@@ -3,15 +3,16 @@ pub mod bedrock_common;
 pub mod bedrock_titan;
 pub mod chunker;
 pub mod cohere;
+pub mod config;
 pub mod fallback;
 
 pub use bedrock_cohere::{BedrockCohereClient, BedrockCohereConfig};
 pub use bedrock_titan::{BedrockTitanClient, BedrockTitanConfig};
 pub use chunker::{ChunkConfig, TextChunk, TextChunker};
 pub use cohere::{CohereClient, CohereConfig};
+pub use config::EmbeddingConfig;
 pub use fallback::FallbackEmbeddingProvider;
 
-use agentic_core::EmbeddingConfig;
 use anyhow::Result;
 
 type EmbedFuture<'a> =

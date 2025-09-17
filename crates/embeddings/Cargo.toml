@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-agentic-core = { path = "../agentic-core" }
+vector_store = { path = "../vector_store" }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }

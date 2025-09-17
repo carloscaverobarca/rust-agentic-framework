@@ -1,6 +1,5 @@
 use crate::config::Config;
 use crate::sse::{create_assistant_output_event, create_tool_usage_event};
-use agentic_core::{session::SessionStore, Message, Role};
 use anyhow::{Context, Result};
 use axum::response::sse::Event;
 use chrono::Utc;
@@ -14,6 +13,7 @@ use std::sync::{Arc, Mutex};
 use tooling::{FileSummarizerTool, ToolInput, ToolRegistry};
 use uuid::Uuid;
 use vector_store::{Document, DocumentChunk, SearchResult, VectorStore};
+use vector_store::{Message, RedisSessionStore, Role};
 
 // Simple in-memory vector store for testing
 pub struct InMemoryVectorStore {
@@ -138,7 +138,7 @@ impl ToolCallDetector {
 
 pub struct AgentService {
     config: Config,
-    session_store: Arc<Mutex<SessionStore>>,
+    session_store: Arc<RedisSessionStore>,
     embeddings_client: EmbeddingClient,
     vector_store: Arc<AnyVectorStore>,
     llm_client: Arc<BedrockClient>,
@@ -150,7 +150,7 @@ impl std::fmt::Debug for AgentService {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AgentService")
             .field("config", &self.config)
-            .field("session_store", &"SessionStore<...>")
+            .field("session_store", &"RedisSessionStore<...>")
             .field("embeddings_client", &"EmbeddingClient<...>")
             .field("vector_store", &"AnyVectorStore<...>")
             .field("llm_client", &"BedrockClient<...>")
@@ -169,7 +169,13 @@ pub struct AgentResponse {
 
 impl AgentService {
     pub async fn new(config: Config) -> Result<Self> {
-        let session_store = Arc::new(Mutex::new(SessionStore::new()));
+        // Initialize Redis session store
+        let redis_cfg = config.redis.with_env_overrides();
+        let session_ttl = std::time::Duration::from_secs(redis_cfg.session_ttl_seconds);
+        let session_store = Arc::new(
+            RedisSessionStore::new(&redis_cfg.url, session_ttl)
+                .context("Failed to create Redis session store")?,
+        );
 
         // Initialize embeddings client via factory (with fallback for testing)
         let embeddings_client: EmbeddingClient = create_embedding_provider(&config.embedding)
@@ -244,13 +250,13 @@ impl AgentService {
     // Dependency-injection friendly constructor for testing and composition
     pub async fn with_clients(
         config: Config,
+        session_store: Arc<RedisSessionStore>,
         embeddings_client: EmbeddingClient,
         vector_store: Arc<AnyVectorStore>,
         llm_client: Arc<BedrockClient>,
         tool_registry: Arc<ToolRegistry>,
         text_chunker: TextChunker,
     ) -> Result<Self> {
-        let session_store = Arc::new(Mutex::new(SessionStore::new()));
         Ok(Self {
             config,
             session_store,
@@ -269,9 +275,9 @@ impl AgentService {
     ) -> Result<Vec<Event>> {
         for message in &messages {
             self.session_store
-                .lock()
-                .unwrap()
-                .append(&session_id, message.clone());
+                .append(&session_id, message.clone())
+                .await
+                .context("Failed to append message to session")?;
         }
 
         let user_message = messages
@@ -295,9 +301,9 @@ impl AgentService {
                         name: Some("tool_result".to_string()),
                     };
                     self.session_store
-                        .lock()
-                        .unwrap()
-                        .append(&session_id, tool_message.clone());
+                        .append(&session_id, tool_message.clone())
+                        .await
+                        .context("Failed to append tool message to session")?;
 
                     // Emit tool usage event
                     events.push(create_tool_usage_event(
@@ -363,7 +369,11 @@ impl AgentService {
         };
 
         // Convert messages to LLM format
-        let session_messages = self.session_store.lock().unwrap().get(&session_id);
+        let session_messages = self
+            .session_store
+            .get(&session_id)
+            .await
+            .context("Failed to get session messages")?;
         let llm_messages = match self.convert_to_llm_messages(session_messages, search_results) {
             Ok(messages) => messages,
             Err(e) => {
@@ -418,9 +428,9 @@ impl AgentService {
                         name: None,
                     };
                     self.session_store
-                        .lock()
-                        .unwrap()
-                        .append(&session_id, assistant_message);
+                        .append(&session_id, assistant_message)
+                        .await
+                        .context("Failed to append assistant message to session")?;
                 }
             }
             Err(e) => {
@@ -581,7 +591,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         let config = Config {
-            embedding: agentic_core::EmbeddingConfig {
+            embedding: embeddings::EmbeddingConfig {
                 provider: "fallback".to_string(),
                 model: None,
                 aws_region: None,
@@ -593,6 +603,10 @@ mod tests {
             },
             pgvector: crate::config::PgVectorConfig {
                 url: format!("sqlite://{}", db_path.display()),
+            },
+            redis: crate::config::RedisConfig {
+                url: "redis://localhost:6379".to_string(),
+                session_ttl_seconds: 3600,
             },
             data: crate::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),
@@ -809,7 +823,7 @@ mod tests {
         assert!(!events.is_empty(), "Should receive response events");
 
         // Verify session storage
-        let stored_messages = service.session_store.lock().unwrap().get(&session_id);
+        let stored_messages = service.session_store.get(&session_id).await.unwrap();
         assert!(
             !stored_messages.is_empty(),
             "Session should contain messages"
@@ -835,7 +849,7 @@ mod tests {
         );
 
         // Verify session contains both messages
-        let final_messages = service.session_store.lock().unwrap().get(&session_id);
+        let final_messages = service.session_store.get(&session_id).await.unwrap();
         assert!(
             !final_messages.is_empty(),
             "Session should contain messages"
@@ -916,7 +930,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         let config = Config {
-            embedding: agentic_core::EmbeddingConfig {
+            embedding: embeddings::EmbeddingConfig {
                 provider: "fallback".to_string(),
                 model: None,
                 aws_region: None,
@@ -928,6 +942,10 @@ mod tests {
             },
             pgvector: crate::config::PgVectorConfig {
                 url: format!("sqlite://{}", db_path.display()),
+            },
+            redis: crate::config::RedisConfig {
+                url: "redis://localhost:6379".to_string(),
+                session_ttl_seconds: 3600,
             },
             data: crate::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),
@@ -964,7 +982,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         let config = Config {
-            embedding: agentic_core::EmbeddingConfig {
+            embedding: embeddings::EmbeddingConfig {
                 provider: "bedrock-cohere".to_string(),
                 model: Some("cohere.embed-english-v3".to_string()),
                 aws_region: Some("eu-west-1".to_string()),
@@ -976,6 +994,10 @@ mod tests {
             },
             pgvector: crate::config::PgVectorConfig {
                 url: format!("sqlite://{}", db_path.display()),
+            },
+            redis: crate::config::RedisConfig {
+                url: "redis://localhost:6379".to_string(),
+                session_ttl_seconds: 3600,
             },
             data: crate::config::DataConfig {
                 document_dir: temp_dir.path().to_string_lossy().to_string(),

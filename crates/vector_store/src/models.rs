@@ -2,6 +2,52 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+// Core types moved from agentic-core crate
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Role {
+    User,
+    Assistant,
+    Tool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Message {
+    pub role: Role,
+    pub content: String,
+    pub name: Option<String>,
+}
+
+// Session data for Redis storage
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SessionData {
+    pub messages: Vec<Message>,
+    pub created_at: DateTime<Utc>,
+    pub last_accessed: DateTime<Utc>,
+}
+
+impl Default for SessionData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl SessionData {
+    pub fn new() -> Self {
+        let now = Utc::now();
+        Self {
+            messages: Vec::new(),
+            created_at: now,
+            last_accessed: now,
+        }
+    }
+
+    pub fn with_message(message: Message) -> Self {
+        let mut session = Self::new();
+        session.messages.push(message);
+        session
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Document {
     pub id: Uuid,
@@ -67,6 +113,92 @@ impl SearchResult {
 mod tests {
     use super::*;
 
+    // Tests for core types moved from agentic-core
+    #[test]
+    fn should_serialize_role_enum() {
+        let user_role = Role::User;
+        let json = serde_json::to_string(&user_role).unwrap();
+        assert_eq!(json, "\"User\"");
+
+        let assistant_role = Role::Assistant;
+        let json = serde_json::to_string(&assistant_role).unwrap();
+        assert_eq!(json, "\"Assistant\"");
+
+        let tool_role = Role::Tool;
+        let json = serde_json::to_string(&tool_role).unwrap();
+        assert_eq!(json, "\"Tool\"");
+    }
+
+    #[test]
+    fn should_deserialize_role_enum() {
+        let role: Role = serde_json::from_str("\"User\"").unwrap();
+        assert_eq!(role, Role::User);
+
+        let role: Role = serde_json::from_str("\"Assistant\"").unwrap();
+        assert_eq!(role, Role::Assistant);
+
+        let role: Role = serde_json::from_str("\"Tool\"").unwrap();
+        assert_eq!(role, Role::Tool);
+    }
+
+    #[test]
+    fn should_serialize_message_struct() {
+        let message = Message {
+            role: Role::User,
+            content: "Hello, world!".to_string(),
+            name: None,
+        };
+
+        let json = serde_json::to_string(&message).unwrap();
+        let expected = r#"{"role":"User","content":"Hello, world!","name":null}"#;
+        assert_eq!(json, expected);
+    }
+
+    #[test]
+    fn should_serialize_message_with_name() {
+        let message = Message {
+            role: Role::Tool,
+            content: "Tool result".to_string(),
+            name: Some("file_summarizer".to_string()),
+        };
+
+        let json = serde_json::to_string(&message).unwrap();
+        let expected = r#"{"role":"Tool","content":"Tool result","name":"file_summarizer"}"#;
+        assert_eq!(json, expected);
+    }
+
+    #[test]
+    fn should_deserialize_message_struct() {
+        let json = r#"{"role":"Assistant","content":"Hello back!","name":null}"#;
+        let message: Message = serde_json::from_str(json).unwrap();
+
+        assert_eq!(message.role, Role::Assistant);
+        assert_eq!(message.content, "Hello back!");
+        assert_eq!(message.name, None);
+    }
+
+    #[test]
+    fn should_create_session_data() {
+        let session = SessionData::new();
+        assert!(session.messages.is_empty());
+        assert!(session.created_at <= Utc::now());
+        assert!(session.last_accessed <= Utc::now());
+    }
+
+    #[test]
+    fn should_create_session_data_with_message() {
+        let message = Message {
+            role: Role::User,
+            content: "Hello".to_string(),
+            name: None,
+        };
+
+        let session = SessionData::with_message(message.clone());
+        assert_eq!(session.messages.len(), 1);
+        assert_eq!(session.messages[0], message);
+    }
+
+    // Tests for existing document types
     #[test]
     fn should_create_document_with_uuid_and_timestamp() {
         let embedding = vec![0.1, 0.2, 0.3];
