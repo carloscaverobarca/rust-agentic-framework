@@ -91,7 +91,7 @@ mod tests {
     fn should_deserialize_config_from_toml() {
         let toml_content = r#"
 [embedding]
-provider = "cohere"
+provider = "bedrock-cohere"
 
 [llm]
 primary = "claude-sonnet-v4"
@@ -110,7 +110,7 @@ document_dir = "./data/faq_docs"
 
         let config: Config = toml::from_str(toml_content).unwrap();
 
-        assert_eq!(config.embedding.provider, "cohere");
+        assert_eq!(config.embedding.provider, "bedrock-cohere");
         assert_eq!(config.llm.primary, "claude-sonnet-v4");
         assert_eq!(config.llm.fallback, "claude-sonnet-v3.7");
         assert_eq!(config.pgvector.url, "postgres://localhost:5432/chatbot");
@@ -121,7 +121,7 @@ document_dir = "./data/faq_docs"
     fn should_load_config_from_file() {
         let toml_content = r#"
 [embedding]
-provider = "cohere"
+provider = "bedrock-cohere"
 
 [llm]
 primary = "claude-sonnet-v4"
@@ -143,7 +143,7 @@ document_dir = "./data/faq_docs"
 
         let config = Config::load(temp_file.path()).unwrap();
 
-        assert_eq!(config.embedding.provider, "cohere");
+        assert_eq!(config.embedding.provider, "bedrock-cohere");
         assert_eq!(config.llm.primary, "claude-sonnet-v4");
     }
 
@@ -151,7 +151,7 @@ document_dir = "./data/faq_docs"
     fn should_load_config_with_default_path() {
         let toml_content = r#"
 [embedding]
-provider = "cohere"
+provider = "bedrock-cohere"
 
 [llm]
 primary = "claude-sonnet-v4"
@@ -176,7 +176,7 @@ document_dir = "./data/faq_docs"
 
         let config = Config::load_from_env().unwrap();
 
-        assert_eq!(config.embedding.provider, "cohere");
+        assert_eq!(config.embedding.provider, "bedrock-cohere");
 
         env::remove_var("CONFIG_PATH");
     }

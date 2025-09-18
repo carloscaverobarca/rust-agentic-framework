@@ -880,7 +880,7 @@ mod tests {
         };
 
         // Test embedding error
-        let embedding_error = AgentError::EmbeddingError("Cohere API failed".to_string());
+        let embedding_error = AgentError::EmbeddingError("Embedding API failed".to_string());
         assert_eq!(embedding_error.http_status_code(), 500);
         assert!(embedding_error.is_retryable());
 
@@ -906,7 +906,7 @@ mod tests {
         use crate::sse::create_error_event;
 
         // Test that errors are properly converted to SSE events with correct structure
-        let embedding_error = AgentError::EmbeddingError("Cohere API timeout".to_string());
+        let embedding_error = AgentError::EmbeddingError("Embedding API timeout".to_string());
         let event = create_error_event(&embedding_error);
 
         // Convert to debug string to verify content

@@ -45,7 +45,7 @@ impl AgentError {
     /// Returns true if the error is potentially recoverable with a retry
     pub fn is_retryable(&self) -> bool {
         match self {
-            AgentError::EmbeddingError(_) => true, // Cohere API might be temporarily down
+            AgentError::EmbeddingError(_) => true, // Embedding API might be temporarily down
             AgentError::ToolError(_) => false,     // File not found won't fix itself
             AgentError::LlmError(_) => true,       // Bedrock timeout can be retried
             AgentError::DatabaseError(_) => true,  // Connection can be re-established
@@ -120,10 +120,10 @@ mod tests {
 
     #[test]
     fn should_format_sse_event_data_correctly() {
-        let error = AgentError::EmbeddingError("Cohere API failed".to_string());
+        let error = AgentError::EmbeddingError("Embedding API failed".to_string());
         let sse_data = error.to_sse_event_data();
 
-        assert!(sse_data.contains("Embedding service error: Cohere API failed"));
+        assert!(sse_data.contains("Embedding service error: Embedding API failed"));
         assert!(sse_data.contains("\"retryable\": true"));
 
         let non_retryable_error = AgentError::ToolError("File not found".to_string());

@@ -8,7 +8,7 @@ This agentic chatbot provides:
 
 - **RAG (Retrieval-Augmented Generation)** for answering questions from local document knowledge base
 - **AWS Bedrock Claude Sonnet 4** for LLM synthesis with fallback to Sonnet 3.7
-- **Cohere embeddings** with pgvector for semantic search
+- **AWS Bedrock Cohere embeddings** with pgvector for semantic search
 - **File summarizer tool** for document processing
 - **SSE streaming API** via Axum framework for real-time responses
 
@@ -39,7 +39,6 @@ agentic-framework/
 1. **Rust** (latest stable version)
 2. **Docker & Docker Compose** (for PostgreSQL + pgvector)
 3. **AWS CLI** configured with Bedrock access
-4. **Cohere API key**
 
 ### 1. Clone and Build
 
@@ -63,14 +62,12 @@ This creates a PostgreSQL database with:
 - **User**: postgres
 - **Password**: postgres
 - **pgvector extension** enabled
-- **768-dimensional vector** support (Cohere embedding size)
 
 ### 3. Configure Environment
 
 Set up your environment variables:
 
 ```bash
-export COHERE_API_KEY="your-cohere-api-key"  # pragma: allowlist secret
 export AWS_PROFILE="your-aws-profile-name"  # Optional, defaults to 'default'
 export AWS_REGION="eu-central-1"
 export LLM_PRIMARY_MODEL="anthropic.claude-sonnet-4-20250514-v1:0"
@@ -79,8 +76,7 @@ export PGVECTOR_URL="postgresql://username:password@host:5432/chatbot"  # pragma
 ```
 
 Precedence:
-- If set, `PGVECTOR_URL`, `LLM_PRIMARY_MODEL` and `LLM_FALLBACK_MODEL` take precedence over `config.toml`.
-- If not set, values from `config.toml` are used.
+- If set the environment vars take precedence over `config.toml`.
 
 ### 4. Configure Pre-commit Hooks
 
@@ -107,17 +103,7 @@ Hooks run automatically on `git commit`. To run manually on all files:
 pre-commit run --all-files
 ```
 
-### 5. Initialize Document Directory
-
-Create a documents directory and add your knowledge base files:
-
-```bash
-mkdir documents
-echo "Company Policy: Remote work is allowed up to 3 days per week." > documents/hr_policy.txt
-echo "Tech Stack: We use Rust for backend, TypeScript for frontend." > documents/tech_info.txt
-```
-
-### 6. Run the Server
+### 5. Run the Server
 
 ```bash
 cargo run --bin server
@@ -174,68 +160,6 @@ Attach an IAM role with the `bedrock:InvokeModel` permission.
         }
     ]
 }
-```
-
-### Cohere Setup
-
-#### 1. Get API Key
-
-1. Sign up at [cohere.com](https://cohere.com)
-2. Navigate to **API Keys** in the dashboard
-3. Create a new API key
-
-#### 2. Set Environment Variable
-
-```bash
-export COHERE_API_KEY="your-cohere-api-key" # pragma: allowlist secret
-```
-
-#### 3. Configure in config.toml
-
-```toml
-[embedding]
-provider = "cohere"
-```
-
-**Alternative: Use Fallback Provider**
-
-For testing without Cohere API:
-
-```toml
-[embedding]
-provider = "fallback"
-```
-
-### Database Configuration
-
-#### PostgreSQL with pgvector (Production)
-
-1. **Install PostgreSQL** with pgvector extension
-2. **Create Database**:
-
-```sql
-CREATE DATABASE chatbot;
-CREATE EXTENSION vector;
-
-CREATE TABLE documents (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    file_name TEXT NOT NULL,
-    chunk_id INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    embedding VECTOR(768),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX documents_embedding_idx
-ON documents USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100);
-```
-
-3. **Configure Connection**:
-
-```toml
-[pgvector]
-url = "postgresql://username:password@localhost:5432/chatbot" # pragma: allowlist secret
 ```
 
 #### Docker Setup (Development)
@@ -449,18 +373,6 @@ COPY --from=builder /app/target/release/server /usr/local/bin/server
 COPY config.toml /app/config.toml
 WORKDIR /app
 CMD ["server"]
-```
-
-### Environment Variables
-
-For production deployment:
-
-```bash
-export RUST_LOG=info
-export COHERE_API_KEY="production-key"  # pragma: allowlist secret
-export AWS_PROFILE="production-profile"  # Optional, defaults to 'default'
-export AWS_REGION="eu-central-1"
-export DATABASE_URL="postgresql://user:pass@prod-db:5432/chatbot"  # pragma: allowlist secret
 ```
 
 ## Performance Considerations

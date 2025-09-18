@@ -15,8 +15,8 @@ mod tests {
     #[test]
     fn should_serialize_embedding_config() {
         let config = EmbeddingConfig {
-            provider: "cohere".to_string(),
-            model: Some("embed-multilingual-v3".to_string()),
+            provider: "bedrock-cohere".to_string(),
+            model: Some("cohere.embed-multilingual-v3".to_string()),
             aws_region: Some("us-east-1".to_string()),
             dimensions: Some(1024),
         };
@@ -29,7 +29,7 @@ mod tests {
     #[test]
     fn should_serialize_embedding_config_with_minimal_fields() {
         let config = EmbeddingConfig {
-            provider: "cohere".to_string(),
+            provider: "bedrock-cohere".to_string(),
             model: None,
             aws_region: None,
             dimensions: None,

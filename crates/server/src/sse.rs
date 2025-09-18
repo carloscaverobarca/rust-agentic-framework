@@ -168,14 +168,14 @@ mod tests {
     async fn should_create_error_event() {
         use crate::errors::AgentError;
 
-        let error = AgentError::EmbeddingError("Cohere API timeout".to_string());
+        let error = AgentError::EmbeddingError("Embedding API timeout".to_string());
         let event = create_error_event(&error);
 
         // Convert to debug string to verify content
         let event_str = format!("{:?}", event);
         assert!(event_str.contains("error_event"));
         assert!(event_str.contains("Embedding service error"));
-        assert!(event_str.contains("Cohere API timeout"));
+        assert!(event_str.contains("Embedding API timeout"));
         assert!(event_str.contains("retryable"));
         assert!(event_str.contains("500")); // HTTP status code
     }

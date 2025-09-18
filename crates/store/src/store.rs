@@ -248,7 +248,6 @@ mod tests {
 
     #[test]
     fn should_handle_1024_dimensional_embeddings() {
-        // RED: This test should fail because current schema only supports 768 dimensions
         let embedding_1024 = vec![0.1; 1024];
         let chunk = DocumentChunk::new(
             "bedrock_test.txt".to_string(),
@@ -260,9 +259,6 @@ mod tests {
         let document = chunk.into_document();
         assert_eq!(document.embedding.len(), 1024);
         assert_eq!(document.file_name, "bedrock_test.txt");
-
-        // This test validates that our types can handle 1024 dimensions
-        // The actual database insertion would fail with current schema
     }
 
     #[tokio::test]

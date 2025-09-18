@@ -2,14 +2,12 @@ pub mod bedrock_cohere;
 pub mod bedrock_common;
 pub mod bedrock_titan;
 pub mod chunker;
-pub mod cohere;
 pub mod config;
 pub mod fallback;
 
 pub use bedrock_cohere::{BedrockCohereClient, BedrockCohereConfig};
 pub use bedrock_titan::{BedrockTitanClient, BedrockTitanConfig};
 pub use chunker::{ChunkConfig, TextChunk, TextChunker};
-pub use cohere::{CohereClient, CohereConfig};
 pub use config::EmbeddingConfig;
 pub use fallback::FallbackEmbeddingProvider;
 
@@ -21,15 +19,6 @@ type EmbedFuture<'a> =
 pub trait EmbeddingProvider: Send + Sync {
     fn embed(&self, texts: Vec<String>) -> EmbedFuture<'_>;
     fn dimension(&self) -> usize;
-}
-
-impl EmbeddingProvider for CohereClient {
-    fn embed(&self, texts: Vec<String>) -> EmbedFuture<'_> {
-        Box::pin(self.embed(texts))
-    }
-    fn dimension(&self) -> usize {
-        1024
-    }
 }
 
 impl EmbeddingProvider for BedrockCohereClient {
@@ -63,13 +52,6 @@ pub async fn create_embedding_provider(
     cfg: &EmbeddingConfig,
 ) -> Result<Box<dyn EmbeddingProvider>> {
     match cfg.provider.as_str() {
-        "cohere" => {
-            let cohere_cfg = CohereConfig {
-                api_key: std::env::var("COHERE_API_KEY").unwrap_or_default(),
-                ..CohereConfig::default()
-            };
-            Ok(Box::new(CohereClient::new(cohere_cfg)?))
-        }
         "bedrock-cohere" => {
             let model_id = cfg
                 .model
@@ -105,6 +87,8 @@ pub async fn create_embedding_provider(
             }
             Ok(Box::new(BedrockTitanClient::new(br_cfg).await?))
         }
-        _ => Ok(Box::new(FallbackEmbeddingProvider::with_cohere_dimension())),
+        _ => Ok(Box::new(
+            FallbackEmbeddingProvider::with_standard_dimension(),
+        )),
     }
 }

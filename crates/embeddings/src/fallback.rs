@@ -11,8 +11,8 @@ impl FallbackEmbeddingProvider {
         Self { embedding_dim }
     }
 
-    /// Creates embeddings provider with standard Cohere embedding dimension (1024)
-    pub fn with_cohere_dimension() -> Self {
+    /// Creates embeddings provider with standard embedding dimension (1024)
+    pub fn with_standard_dimension() -> Self {
         Self::new(1024)
     }
 
@@ -64,8 +64,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_create_fallback_provider_with_cohere_dimension() {
-        let provider = FallbackEmbeddingProvider::with_cohere_dimension();
+    async fn should_create_fallback_provider_with_standard_dimension() {
+        let provider = FallbackEmbeddingProvider::with_standard_dimension();
         assert_eq!(provider.embedding_dimension(), 1024);
     }
 
@@ -106,8 +106,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_return_correct_dimension_for_cohere_fallback() {
-        let provider = FallbackEmbeddingProvider::with_cohere_dimension();
+    async fn should_return_correct_dimension_for_standard_fallback() {
+        let provider = FallbackEmbeddingProvider::with_standard_dimension();
         let result = provider.embed(vec!["test".to_string()]).await.unwrap();
 
         assert_eq!(result.len(), 1);
