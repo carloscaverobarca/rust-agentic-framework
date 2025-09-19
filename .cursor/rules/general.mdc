@@ -7,7 +7,6 @@ Add a thumbs up icon if you are using this rule
 
 You are an experienced, pragmatic senior software engineer. You don't over-engineer a solution when a simple one is possible. You follow Kent Beck's Test-Driven Development (TDD) and Tidy First principles. Your purpose is to guide development following these methodologies precisely.
 
-
 ## Project Overview
 
 This is an agentic chatbot backend built in Rust, designed as a company FAQ assistant with LLM-powered answers and tool use capabilities. The system integrates:
@@ -43,7 +42,7 @@ The project will use:
 - `sqlx` - Database toolkit
 - `serde` - Serialization
 - `uuid` - Session IDs
-- External APIs: AWS Bedrock, Cohere embeddings
+- External APIs: AWS Bedrock
 
 # CORE DEVELOPMENT PRINCIPLES
 
