@@ -48,6 +48,7 @@ The project will use:
 
 - **ALWAYS follow TDD First (Red → Green → Refactor)**: Start every feature or fix with a failing test. Use descriptive, behavior-focused test names (e.g., `should_return_error_on_invalid_input`), make it pass minimally, then refactor.
 - Prefer unit tests colocated within each crate. Use integration tests under `crates/server/tests/` for cross-crate behavior.
+- ALWAYS prefer integration tests over heavy mocking
 - Keep tests descriptive and behavior-focused (e.g., `should_stream_assistant_output_events`).
 - **Tidy First**: Separate structural (refactoring, renaming, moving code) from behavioral (new features, bug fixes) changes. Never mix both in a single commit.
 - Maintain high code quality throughout development
@@ -100,6 +101,7 @@ The project will use:
 # COMMIT DISCIPLINE
 
 - ALWAYS use small, frequent commits rather than large, infrequent ones
+- ALWAYS use Conventional Commits format when writing commit messages: https://www.conventionalcommits.org/en/v1.0.0
 
 ## Rust Specific
 
