@@ -1,0 +1,92 @@
+# Rust build artifacts and cache
+target/
+**/target/
+
+# Node.js dependencies and build artifacts
+web_gui/node_modules/
+web_gui/dist/
+web_gui/build/
+web_gui/.vite/
+
+# Generated files and build outputs
+*.d
+*.rlib
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Temporary files
+target/tmp/
+**/tmp/
+*.tmp
+*.temp
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Logs and debug files
+*.log
+*.logs
+*.debug
+*.trace
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Coverage reports
+coverage/
+*.lcov
+*.coverage
+
+# Documentation build artifacts
+docs/_build/
+docs/build/
+
+# Package manager lock files (keep Cargo.lock but ignore others)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Cache directories
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist/
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
