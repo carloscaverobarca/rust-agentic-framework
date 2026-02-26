@@ -7,7 +7,14 @@
       "Bash(npm run preview)",
       "Bash(rm -rf node_modules package-lock.json)",
       "Bash(npm install)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/)",
+      "Bash(cargo build:*)",
+      "Bash(cargo check:*)",
+      "Bash(chmod +x:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo:*)",
+      "Bash(git:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

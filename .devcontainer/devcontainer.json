@@ -1,0 +1,56 @@
+{
+  "name": "Rust Dev Environment",
+  "image": "mcr.microsoft.com/devcontainers/rust:latest",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "latest",
+      "profile": "default"
+    }
+  },
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "serayuzgur.crates",
+        "github.copilot",
+        "github.copilot-chat",
+        "vadimcn.vscode-lldb",
+        "swellaby.vscode-rust-test-adapter"
+      ],
+      "settings": {
+        "rust-analyzer.checkOnSave.command": "clippy",
+        "rust-analyzer.cargo.features": "all",
+        "rust-analyzer.inlayHints.chainingHints.enable": true,
+        "rust-analyzer.inlayHints.parameterHints.enable": true,
+        "editor.formatOnSave": true,
+        "[rust]": {
+          "editor.defaultFormatter": "rust-lang.rust-analyzer"
+        },
+        "rust-analyzer.lens.enable": true,
+        "rust-analyzer.lens.run.enable": true,
+        "rust-analyzer.lens.debug.enable": true
+      }
+    },
+    "idea": {
+      "plugins": [
+        "org.rust.lang",
+        "com.intellij.plugins.github.copilot"
+      ]
+    }
+  },
+  
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  ],
+  
+  "workspaceFolder": "/workspace",
+  
+  "postCreateCommand": "rustc --version && cargo --version && rustup component add rustfmt clippy rust-src",
+  
+  "remoteUser": "vscode"
+}
