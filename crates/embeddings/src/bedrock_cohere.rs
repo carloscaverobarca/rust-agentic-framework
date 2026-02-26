@@ -141,31 +141,7 @@ impl BedrockCohereClient {
             return Ok(vec![]);
         }
 
-        let mut last_error = None;
-
-        for attempt in 0..=self.config.max_retries {
-            match self.try_embed(&texts).await {
-                Ok(embeddings) => {
-                    return Ok(embeddings);
-                }
-                Err(e) => {
-                    warn!("Embedding attempt {} failed: {}", attempt + 1, e);
-                    last_error = Some(e);
-
-                    if attempt < self.config.max_retries {
-                        let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempt)));
-                        tokio::time::sleep(delay).await;
-                    }
-                }
-            }
-        }
-
-        let final_error = last_error.unwrap();
-        error!(
-            "All embedding attempts failed. Final error: {}",
-            final_error
-        );
-        Err(final_error)
+        crate::retry::retry_with_backoff(self.config.max_retries, |_| self.try_embed(&texts)).await
     }
 
     async fn try_embed(&self, texts: &[String]) -> Result<Vec<Vec<f32>>> {

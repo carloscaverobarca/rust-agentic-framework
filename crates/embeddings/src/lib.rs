@@ -4,6 +4,7 @@ pub mod bedrock_titan;
 pub mod chunker;
 pub mod config;
 pub mod fallback;
+mod retry;
 
 pub use bedrock_cohere::{BedrockCohereClient, BedrockCohereConfig};
 pub use bedrock_titan::{BedrockTitanClient, BedrockTitanConfig};

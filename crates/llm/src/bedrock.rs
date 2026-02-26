@@ -11,7 +11,6 @@ use aws_sdk_bedrockruntime::{
 use futures::stream::Stream;
 use log::{error, info};
 use std::pin::Pin;
-use std::time::Duration;
 
 pub struct BedrockClient {
     client: Client,
@@ -43,31 +42,15 @@ impl BedrockClient {
         &self,
         messages: Vec<ChatMessage>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send + '_>>> {
-        let mut attempt = 0;
-        let mut last_error = None;
-
-        while attempt <= self.config.max_retries {
+        crate::retry::retry_with_backoff(self.config.max_retries, |attempt| {
             let model = if attempt == 0 {
-                &self.config.primary_model
+                self.config.primary_model.as_str()
             } else {
-                &self.config.fallback_model
+                self.config.fallback_model.as_str()
             };
-
-            match self.try_call_claude(messages.clone(), model).await {
-                Ok(stream) => return Ok(stream),
-                Err(e) => {
-                    last_error = Some(e);
-                    attempt += 1;
-
-                    if attempt <= self.config.max_retries {
-                        let delay = Duration::from_millis(1000 * (2_u64.pow(attempt - 1)));
-                        tokio::time::sleep(delay).await;
-                    }
-                }
-            }
-        }
-
-        Err(last_error.unwrap())
+            self.try_call_claude(messages.clone(), model)
+        })
+        .await
     }
 
     async fn try_call_claude(
