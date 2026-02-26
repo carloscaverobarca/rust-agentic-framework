@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::errors::AgentError;
 use crate::sse::{create_assistant_output_event, create_tool_usage_event};
 use anyhow::{Context, Result};
 use axum::response::sse::Event;
@@ -272,14 +273,14 @@ impl AgentService {
         &self,
         session_id: Uuid,
         messages: Vec<Message>,
-    ) -> Result<Vec<Event>> {
+    ) -> Result<Vec<Event>, AgentError> {
         self.persist_messages(session_id, &messages).await?;
 
         let user_message = messages
             .iter()
             .rev()
             .find(|msg| matches!(msg.role, Role::User))
-            .ok_or_else(|| anyhow::anyhow!("No user message found"))?;
+            .ok_or_else(|| AgentError::ValidationError("No user message found".to_string()))?;
 
         let mut events = self
             .execute_tool_calls(session_id, &user_message.content)
@@ -324,18 +325,29 @@ impl AgentService {
         Ok(events)
     }
 
-    async fn persist_messages(&self, session_id: Uuid, messages: &[Message]) -> Result<()> {
+    async fn persist_messages(
+        &self,
+        session_id: Uuid,
+        messages: &[Message],
+    ) -> Result<(), AgentError> {
         for message in messages {
             self.session_store
                 .append(&session_id, message.clone())
                 .await
-                .context("Failed to append message to session")?;
+                .map_err(|e| AgentError::SessionError(e.to_string()))?;
         }
         Ok(())
     }
 
-    async fn execute_tool_calls(&self, session_id: Uuid, user_content: &str) -> Result<Vec<Event>> {
-        let tool_calls = self.detect_tool_calls(user_content).await?;
+    async fn execute_tool_calls(
+        &self,
+        session_id: Uuid,
+        user_content: &str,
+    ) -> Result<Vec<Event>, AgentError> {
+        let tool_calls = self
+            .detect_tool_calls(user_content)
+            .await
+            .map_err(|e| AgentError::ToolError(e.to_string()))?;
         let mut events = Vec::new();
 
         for tool_call in tool_calls {
@@ -343,13 +355,14 @@ impl AgentService {
                 Ok(tool_result) => {
                     let tool_message = Message {
                         role: Role::Tool,
-                        content: serde_json::to_string(&tool_result.result)?,
+                        content: serde_json::to_string(&tool_result.result)
+                            .map_err(|e| AgentError::ToolError(e.to_string()))?,
                         name: Some("tool_result".to_string()),
                     };
                     self.session_store
                         .append(&session_id, tool_message)
                         .await
-                        .context("Failed to append tool message to session")?;
+                        .map_err(|e| AgentError::SessionError(e.to_string()))?;
 
                     events.push(create_tool_usage_event(
                         &tool_call.name,
@@ -387,7 +400,7 @@ impl AgentService {
         &self,
         session_id: Uuid,
         search_results: Vec<SearchResult>,
-    ) -> Result<Vec<Event>> {
+    ) -> Result<Vec<Event>, AgentError> {
         use crate::sse::create_streaming_content_event;
         use futures::StreamExt;
 
@@ -395,7 +408,7 @@ impl AgentService {
             .session_store
             .get(&session_id)
             .await
-            .context("Failed to get session messages")?;
+            .map_err(|e| AgentError::SessionError(e.to_string()))?;
 
         let llm_messages = match self.convert_to_llm_messages(session_messages, search_results) {
             Ok(messages) => messages,
@@ -445,7 +458,7 @@ impl AgentService {
                     self.session_store
                         .append(&session_id, assistant_message)
                         .await
-                        .context("Failed to append assistant message to session")?;
+                        .map_err(|e| AgentError::SessionError(e.to_string()))?;
                 }
             }
             Err(e) => {

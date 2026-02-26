@@ -39,7 +39,6 @@ async fn predict_stream_with_agent(
     State(agent_service): State<Arc<agent::AgentService>>,
     ExtractJson(request): ExtractJson<PredictStreamRequest>,
 ) -> impl axum::response::IntoResponse {
-    use errors::AgentError;
     use sse::create_error_event;
 
     match agent_service
@@ -47,20 +46,7 @@ async fn predict_stream_with_agent(
         .await
     {
         Ok(events) => create_sse_stream(events),
-        Err(e) => {
-            // Map anyhow::Error to our AgentError for proper error handling
-            let agent_error = if e.to_string().contains("embedding") {
-                AgentError::EmbeddingError(e.to_string())
-            } else if e.to_string().contains("tool") {
-                AgentError::ToolError(e.to_string())
-            } else if e.to_string().contains("LLM") || e.to_string().contains("Bedrock") {
-                AgentError::LlmError(e.to_string())
-            } else if e.to_string().contains("database") || e.to_string().contains("vector") {
-                AgentError::DatabaseError(e.to_string())
-            } else {
-                AgentError::ValidationError(e.to_string())
-            };
-
+        Err(agent_error) => {
             let error_events = vec![
                 create_error_event(&agent_error),
                 create_assistant_output_event(
