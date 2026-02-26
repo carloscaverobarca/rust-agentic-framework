@@ -273,12 +273,7 @@ impl AgentService {
         session_id: Uuid,
         messages: Vec<Message>,
     ) -> Result<Vec<Event>> {
-        for message in &messages {
-            self.session_store
-                .append(&session_id, message.clone())
-                .await
-                .context("Failed to append message to session")?;
-        }
+        self.persist_messages(session_id, &messages).await?;
 
         let user_message = messages
             .iter()
@@ -286,12 +281,63 @@ impl AgentService {
             .find(|msg| matches!(msg.role, Role::User))
             .ok_or_else(|| anyhow::anyhow!("No user message found"))?;
 
-        // Detect tool usage in the message
-        let tool_calls = self.detect_tool_calls(&user_message.content).await?;
+        let mut events = self
+            .execute_tool_calls(session_id, &user_message.content)
+            .await?;
 
+        let query_embedding = match self.embed_query(&user_message.content).await {
+            Ok(Some(embedding)) => embedding,
+            Ok(None) => {
+                events.push(create_assistant_output_event(
+                    "I'm having trouble generating embeddings for your query.",
+                ));
+                return Ok(events);
+            }
+            Err(e) => {
+                events.push(create_assistant_output_event(&format!(
+                    "I'm having trouble processing your request due to an embedding error: {}",
+                    e
+                )));
+                return Ok(events);
+            }
+        };
+
+        let search_results = match self.search_context(query_embedding).await {
+            Ok(results) => results,
+            Err(e) => {
+                let error_msg = if e.to_string().contains("embedding dimensions") {
+                    format!(
+                        "Vector search failed due to embedding dimension mismatch. This usually means the database was created with different embedding dimensions than the current provider (Bedrock Cohere uses 1024). Please recreate the database or run initialization again. Details: {}",
+                        e
+                    )
+                } else {
+                    format!("I'm having trouble searching documents: {}", e)
+                };
+                events.push(create_assistant_output_event(&error_msg));
+                return Ok(events);
+            }
+        };
+
+        let response_events = self.stream_response(session_id, search_results).await?;
+        events.extend(response_events);
+
+        Ok(events)
+    }
+
+    async fn persist_messages(&self, session_id: Uuid, messages: &[Message]) -> Result<()> {
+        for message in messages {
+            self.session_store
+                .append(&session_id, message.clone())
+                .await
+                .context("Failed to append message to session")?;
+        }
+        Ok(())
+    }
+
+    async fn execute_tool_calls(&self, session_id: Uuid, user_content: &str) -> Result<Vec<Event>> {
+        let tool_calls = self.detect_tool_calls(user_content).await?;
         let mut events = Vec::new();
 
-        // Process tool calls if any
         for tool_call in tool_calls {
             match self.tool_registry.execute_tool(tool_call.clone()).await {
                 Ok(tool_result) => {
@@ -301,15 +347,14 @@ impl AgentService {
                         name: Some("tool_result".to_string()),
                     };
                     self.session_store
-                        .append(&session_id, tool_message.clone())
+                        .append(&session_id, tool_message)
                         .await
                         .context("Failed to append tool message to session")?;
 
-                    // Emit tool usage event
                     events.push(create_tool_usage_event(
                         &tool_call.name,
                         serde_json::to_value(&tool_call.arguments).unwrap_or_default(),
-                        0, // duration not tracked yet
+                        0,
                         &serde_json::to_string(&tool_result.result).unwrap_or_default(),
                     ));
                 }
@@ -324,73 +369,48 @@ impl AgentService {
             }
         }
 
-        // Create embeddings for the user query
-        let query_embedding = match self
-            .embeddings_client
-            .embed(vec![user_message.content.clone()])
+        Ok(events)
+    }
+
+    async fn embed_query(&self, query: &str) -> Result<Option<Vec<f32>>> {
+        self.embeddings_client
+            .embed(vec![query.to_string()])
             .await
-        {
-            Ok(embeddings) => embeddings.into_iter().next(),
-            Err(e) => {
-                events.push(create_assistant_output_event(&format!(
-                    "I'm having trouble processing your request due to an embedding error: {}",
-                    e
-                )));
-                return Ok(events);
-            }
-        };
+            .map(|embeddings| embeddings.into_iter().next())
+    }
 
-        let query_embedding = match query_embedding {
-            Some(embedding) => embedding,
-            None => {
-                events.push(create_assistant_output_event(
-                    "I'm having trouble generating embeddings for your query.",
-                ));
-                return Ok(events);
-            }
-        };
+    async fn search_context(&self, query_embedding: Vec<f32>) -> Result<Vec<SearchResult>> {
+        self.vector_store.search_similar(query_embedding, 5).await
+    }
 
-        // Search for relevant documents
-        let search_results = match self.vector_store.search_similar(query_embedding, 5).await {
-            Ok(results) => results,
-            Err(e) => {
-                let error_msg = if e.to_string().contains("embedding dimensions") {
-                    format!(
-                        "Vector search failed due to embedding dimension mismatch. This usually means the database was created with different embedding dimensions than the current provider (Bedrock Cohere uses 1024). Please recreate the database or run initialization again. Details: {}",
-                        e
-                    )
-                } else {
-                    format!("I'm having trouble searching documents: {}", e)
-                };
+    async fn stream_response(
+        &self,
+        session_id: Uuid,
+        search_results: Vec<SearchResult>,
+    ) -> Result<Vec<Event>> {
+        use crate::sse::create_streaming_content_event;
+        use futures::StreamExt;
 
-                events.push(create_assistant_output_event(&error_msg));
-                return Ok(events);
-            }
-        };
-
-        // Convert messages to LLM format
         let session_messages = self
             .session_store
             .get(&session_id)
             .await
             .context("Failed to get session messages")?;
+
         let llm_messages = match self.convert_to_llm_messages(session_messages, search_results) {
             Ok(messages) => messages,
             Err(e) => {
-                events.push(create_assistant_output_event(&format!(
+                return Ok(vec![create_assistant_output_event(&format!(
                     "I'm having trouble formatting the conversation: {}",
                     e
-                )));
-                return Ok(events);
+                ))]);
             }
         };
 
-        // Call LLM and process streaming response
+        let mut events = Vec::new();
+
         match self.llm_client.call_claude(llm_messages).await {
             Ok(mut stream) => {
-                use crate::sse::create_streaming_content_event;
-                use futures::StreamExt;
-
                 let mut full_response = String::new();
 
                 while let Some(stream_event) = stream.next().await {
@@ -402,14 +422,10 @@ impl AgentService {
                             }
                         }
                         Ok(llm::StreamEvent::MessageStop) => {
-                            // Add stream end event when LLM completes
                             events.push(crate::sse::create_stream_end_event());
                             break;
                         }
-                        Ok(_) => {
-                            // Handle other stream events (MessageStart, ContentBlockStart, etc.)
-                            // No action needed for these events in the simple case
-                        }
+                        Ok(_) => {}
                         Err(e) => {
                             events.push(create_assistant_output_event(&format!(
                                 "I'm having trouble with the AI service: {}",
@@ -420,7 +436,6 @@ impl AgentService {
                     }
                 }
 
-                // Store the complete response in session
                 if !full_response.is_empty() {
                     let assistant_message = Message {
                         role: Role::Assistant,
