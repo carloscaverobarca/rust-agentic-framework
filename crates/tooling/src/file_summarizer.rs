@@ -13,7 +13,7 @@ pub struct FileSummarizerTool {
 impl FileSummarizerTool {
     pub fn new() -> Self {
         Self {
-            max_file_size: 1024 * 1024, // 1MB default limit
+            max_file_size: 1024 * 1024,
             allowed_extensions: vec![
                 "txt".to_string(),
                 "md".to_string(),
@@ -54,7 +54,6 @@ impl FileSummarizerTool {
     }
 
     async fn read_file_content(&self, file_path: &str) -> Result<String, ToolError> {
-        // Check if file exists
         if !Path::new(file_path).exists() {
             return Err(ToolError::new(
                 self.name().to_string(),
@@ -63,7 +62,6 @@ impl FileSummarizerTool {
             ));
         }
 
-        // Check file extension
         if !self.is_allowed_file(file_path) {
             return Err(ToolError::new(
                 self.name().to_string(),
@@ -72,7 +70,6 @@ impl FileSummarizerTool {
             ));
         }
 
-        // Check file size
         let metadata = fs::metadata(file_path).await.map_err(|e| {
             ToolError::new(
                 self.name().to_string(),
@@ -93,7 +90,6 @@ impl FileSummarizerTool {
             ));
         }
 
-        // Read file content
         let content = fs::read_to_string(file_path).await.map_err(|e| {
             ToolError::new(
                 self.name().to_string(),
@@ -111,14 +107,11 @@ impl FileSummarizerTool {
         let total_chars = content.chars().count();
         let total_words = content.split_whitespace().count();
 
-        // Extract first few lines as preview
         let preview_lines = 5;
         let preview: Vec<&str> = lines.iter().take(preview_lines).cloned().collect();
 
-        // Basic structure analysis
         let mut structure_info = Vec::new();
 
-        // Count common programming constructs
         if file_path.ends_with(".rs") {
             let fn_count = content.matches("fn ").count();
             let struct_count = content.matches("struct ").count();

@@ -96,7 +96,6 @@ mod tests {
     use async_trait::async_trait;
     use serde_json::json;
 
-    // Mock tool for testing
     struct TestTool {
         name: String,
         should_fail: bool,

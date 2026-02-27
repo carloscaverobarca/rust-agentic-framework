@@ -232,7 +232,6 @@ mod tests {
         assert_eq!(output, deserialized);
     }
 
-    // Mock tool for testing trait
     struct MockTool {
         name: String,
     }
