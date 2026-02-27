@@ -86,10 +86,12 @@ repos:
 
       - id: cargo-audit
         name: cargo audit (vulnerability scan)
-        entry: cargo audit
+        # RUSTSEC-2023-0071: rsa via sqlx-mysql; no fix available upstream, we don't use MySQL
+        # RUSTSEC-2025-0134: rustls-pemfile unmaintained; transitive via AWS SDK hyper-rustls
+        entry: cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2025-0134
         language: system
         pass_filenames: false
-        files: Cargo\.lock$
+        always_run: true
         stages: [pre-push]
 
       - id: cargo-deny

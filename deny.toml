@@ -1,9 +1,11 @@
 [advisories]
 version = 2
-# Vulnerability advisories are hard errors; unmaintained/yanked are warnings
-vulnerability = "deny"
-unmaintained = "warn"
-yanked = "warn"
+# All advisory types (vulnerability, unmaintained, unsound) deny by default in v2.
+# Exceptions must be listed explicitly below.
+ignore = [
+    # rustls-pemfile: unmaintained, pulled transitively by AWS SDK via hyper-rustls 0.24.
+    { id = "RUSTSEC-2025-0134", reason = "Transitive via AWS SDK; no direct upgrade path available" },
+]
 
 [licenses]
 version = 2
