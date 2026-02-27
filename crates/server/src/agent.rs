@@ -3,92 +3,63 @@ use crate::errors::AgentError;
 use crate::sse::{create_assistant_output_event, create_tool_usage_event};
 use anyhow::{Context, Result};
 use axum::response::sse::Event;
-use chrono::Utc;
 use embeddings::{create_embedding_provider, ChunkConfig, EmbeddingProvider, TextChunker};
 use llm::{BedrockClient, ChatMessage, ModelConfig};
 use log::info;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use store::{Document, DocumentChunk, SearchResult, VectorStore};
+use std::sync::Arc;
+use store::{DocumentChunk, SearchResult, VectorSearch, VectorStore};
 use store::{Message, RedisSessionStore, Role};
 use tooling::{FileSummarizerTool, ToolInput, ToolRegistry};
 use uuid::Uuid;
 
-// Simple in-memory vector store for testing
-pub struct InMemoryVectorStore {
-    documents: Arc<Mutex<HashMap<Uuid, Document>>>,
-}
+#[cfg(test)]
+mod test_support {
+    use anyhow::Result;
+    use async_trait::async_trait;
+    use chrono::Utc;
+    use std::collections::HashMap;
+    use std::sync::{Arc, Mutex};
+    use store::{Document, DocumentChunk, SearchResult, VectorSearch};
+    use uuid::Uuid;
 
-impl Default for InMemoryVectorStore {
-    fn default() -> Self {
-        Self::new()
+    pub struct InMemoryVectorStore {
+        pub documents: Arc<Mutex<HashMap<Uuid, Document>>>,
     }
-}
 
-impl InMemoryVectorStore {
-    pub fn new() -> Self {
-        Self {
-            documents: Arc::new(Mutex::new(HashMap::new())),
+    impl InMemoryVectorStore {
+        pub fn new() -> Self {
+            Self {
+                documents: Arc::new(Mutex::new(HashMap::new())),
+            }
         }
     }
 
-    pub async fn insert_document(&self, chunk: DocumentChunk) -> Result<()> {
-        let document = Document {
-            id: Uuid::new_v4(),
-            file_name: chunk.file_name,
-            chunk_id: chunk.chunk_id,
-            content: chunk.content,
-            embedding: chunk.embedding,
-            created_at: Utc::now(),
-        };
-
-        self.documents.lock().unwrap().insert(document.id, document);
-        Ok(())
-    }
-
-    pub async fn search_similar(
-        &self,
-        _query_embedding: Vec<f32>,
-        limit: usize,
-    ) -> Result<Vec<SearchResult>> {
-        // For testing, return all stored documents as relevant matches
-        // In a real vector store, this would do similarity search
-        let documents = self.documents.lock().unwrap();
-        let results: Vec<SearchResult> = documents
-            .values()
-            .take(limit)
-            .map(|doc| SearchResult::new(doc.clone(), 0.9)) // Mock high similarity score
-            .collect();
-        Ok(results)
-    }
-}
-
-pub enum AnyVectorStore {
-    Real(VectorStore),
-    InMemory(InMemoryVectorStore),
-}
-
-impl AnyVectorStore {
-    pub async fn insert_document(&self, chunk: DocumentChunk) -> Result<()> {
-        match self {
-            AnyVectorStore::Real(store) => {
-                store.insert_document(chunk).await?;
-                Ok(())
-            }
-            AnyVectorStore::InMemory(store) => store.insert_document(chunk).await,
+    #[async_trait]
+    impl VectorSearch for InMemoryVectorStore {
+        async fn insert_document(&self, chunk: DocumentChunk) -> Result<()> {
+            let document = Document {
+                id: Uuid::new_v4(),
+                file_name: chunk.file_name,
+                chunk_id: chunk.chunk_id,
+                content: chunk.content,
+                embedding: chunk.embedding,
+                created_at: Utc::now(),
+            };
+            self.documents.lock().unwrap().insert(document.id, document);
+            Ok(())
         }
-    }
 
-    pub async fn search_similar(
-        &self,
-        query_embedding: Vec<f32>,
-        limit: usize,
-    ) -> Result<Vec<SearchResult>> {
-        match self {
-            AnyVectorStore::Real(store) => {
-                store.search_similar(query_embedding, limit as i32).await
-            }
-            AnyVectorStore::InMemory(store) => store.search_similar(query_embedding, limit).await,
+        async fn search_similar(
+            &self,
+            _embedding: Vec<f32>,
+            limit: usize,
+        ) -> Result<Vec<SearchResult>> {
+            let documents = self.documents.lock().unwrap();
+            Ok(documents
+                .values()
+                .take(limit)
+                .map(|doc| SearchResult::new(doc.clone(), 0.9))
+                .collect())
         }
     }
 }
@@ -122,7 +93,7 @@ pub struct AgentService {
     config: Config,
     session_store: Arc<RedisSessionStore>,
     embeddings_client: EmbeddingClient,
-    vector_store: Arc<AnyVectorStore>,
+    vector_store: Arc<dyn VectorSearch>,
     llm_client: Arc<BedrockClient>,
     tool_registry: Arc<ToolRegistry>,
     text_chunker: TextChunker,
@@ -159,30 +130,34 @@ impl AgentService {
             .await
             .context("Failed to create embedding provider")?;
 
-        // Initialize vector store (only use in-memory for testing)
         let pg_cfg = config.pgvector.with_env_overrides();
-        let vector_store = if pg_cfg.url.starts_with("sqlite://") {
-            // For testing, create an in-memory vector store alternative
-            Arc::new(AnyVectorStore::InMemory(InMemoryVectorStore::new()))
-        } else if pg_cfg.url.starts_with("postgresql://") {
-            // Create and initialize PostgreSQL vector store with correct embedding dimensions
+
+        #[cfg(test)]
+        let vector_store: Arc<dyn VectorSearch> = if pg_cfg.url.starts_with("sqlite://") {
+            Arc::new(test_support::InMemoryVectorStore::new())
+        } else {
             let embedding_dimensions = embeddings_client.dimension();
             info!(
                 "Initializing PostgreSQL vector store with {} dimensions",
                 embedding_dimensions
             );
-
             let store = VectorStore::new_with_dimensions(&pg_cfg.url, embedding_dimensions)
                 .await
                 .context("Failed to connect to PostgreSQL vector store")?;
+            Arc::new(store)
+        };
 
-            Arc::new(AnyVectorStore::Real(store))
-        } else {
-            // Invalid URL - not sqlite or postgresql
-            anyhow::bail!(
-                "Invalid database URL: {}, must start with 'sqlite://' or 'postgresql://'",
-                pg_cfg.url
+        #[cfg(not(test))]
+        let vector_store: Arc<dyn VectorSearch> = {
+            let embedding_dimensions = embeddings_client.dimension();
+            info!(
+                "Initializing PostgreSQL vector store with {} dimensions",
+                embedding_dimensions
             );
+            let store = VectorStore::new_with_dimensions(&pg_cfg.url, embedding_dimensions)
+                .await
+                .context("Failed to connect to PostgreSQL vector store")?;
+            Arc::new(store)
         };
 
         // Initialize LLM client with configured models
@@ -229,7 +204,7 @@ impl AgentService {
         config: Config,
         session_store: Arc<RedisSessionStore>,
         embeddings_client: EmbeddingClient,
-        vector_store: Arc<AnyVectorStore>,
+        vector_store: Arc<dyn VectorSearch>,
         llm_client: Arc<BedrockClient>,
         tool_registry: Arc<ToolRegistry>,
         text_chunker: TextChunker,

@@ -1,9 +1,16 @@
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use pgvector::Vector;
 use sqlx::{PgPool, Row};
 use tracing;
 
 use crate::models::{Document, DocumentChunk, SearchResult};
+
+#[async_trait]
+pub trait VectorSearch: Send + Sync {
+    async fn insert_document(&self, chunk: DocumentChunk) -> Result<()>;
+    async fn search_similar(&self, embedding: Vec<f32>, limit: usize) -> Result<Vec<SearchResult>>;
+}
 
 pub struct VectorStore {
     pool: PgPool,
@@ -164,6 +171,17 @@ impl VectorStore {
             .context("Failed to delete all documents")?;
 
         Ok(())
+    }
+}
+
+#[async_trait]
+impl VectorSearch for VectorStore {
+    async fn insert_document(&self, chunk: DocumentChunk) -> Result<()> {
+        VectorStore::insert_document(self, chunk).await.map(|_| ())
+    }
+
+    async fn search_similar(&self, embedding: Vec<f32>, limit: usize) -> Result<Vec<SearchResult>> {
+        VectorStore::search_similar(self, embedding, limit as i32).await
     }
 }
 
