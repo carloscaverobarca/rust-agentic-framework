@@ -65,7 +65,6 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting Agentic Framework server");
 
-    // Load configuration
     let config = crate::config::Config::load_from_env().unwrap_or_else(|_| {
         warn!("Warning: Could not load config, using development defaults");
         create_development_config()
@@ -79,7 +78,6 @@ async fn main() -> anyhow::Result<()> {
 
     info!("AgentService initialized successfully");
 
-    // Load documents into vector store
     info!("Loading documents from configured directory...");
     if let Err(e) = agent_service.load_documents().await {
         error!("Failed to load documents: {}", e);
@@ -88,7 +86,6 @@ async fn main() -> anyhow::Result<()> {
         info!("Documents loaded successfully");
     }
 
-    // Create app with AgentService
     let app = create_app_with_state(agent_service);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
@@ -187,7 +184,6 @@ mod tests {
         use store::{Message, Role};
         use uuid::Uuid;
 
-        // Create test config and mock AgentService directly
         let temp_dir = tempfile::TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
 
@@ -214,66 +210,50 @@ mod tests {
             },
         };
 
-        // Test the actual AgentService functionality
-        match AgentService::new(config).await {
-            Ok(agent_service) => {
-                // AgentService was created successfully, test the integration
-                let agent_service = Arc::new(agent_service);
-                let app = create_app_with_state(agent_service);
+        if let Ok(agent_service) = AgentService::new(config).await {
+            let agent_service = Arc::new(agent_service);
+            let app = create_app_with_state(agent_service);
 
-                let request_body = PredictStreamRequest {
-                    session_id: Uuid::new_v4(),
-                    messages: vec![Message {
-                        role: Role::User,
-                        content: "What are the company policies?".to_string(),
-                        name: None,
-                    }],
-                };
+            let request_body = PredictStreamRequest {
+                session_id: Uuid::new_v4(),
+                messages: vec![Message {
+                    role: Role::User,
+                    content: "What are the company policies?".to_string(),
+                    name: None,
+                }],
+            };
 
-                let json_body = serde_json::to_string(&request_body).unwrap();
+            let json_body = serde_json::to_string(&request_body).unwrap();
 
-                let response = app
-                    .oneshot(
-                        Request::builder()
-                            .uri("/predict_stream")
-                            .method("POST")
-                            .header("content-type", "application/json")
-                            .header("accept", "text/event-stream")
-                            .body(Body::from(json_body))
-                            .unwrap(),
-                    )
-                    .await
-                    .unwrap();
+            let response = app
+                .oneshot(
+                    Request::builder()
+                        .uri("/predict_stream")
+                        .method("POST")
+                        .header("content-type", "application/json")
+                        .header("accept", "text/event-stream")
+                        .body(Body::from(json_body))
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
 
-                assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(response.status(), StatusCode::OK);
 
-                let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-                    .await
-                    .unwrap();
-                let content = String::from_utf8(body.to_vec()).unwrap();
+            let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            let content = String::from_utf8(body.to_vec()).unwrap();
 
-                println!("Debug - response content: {}", content); // Debug output
-
-                // Should contain properly processed response from AgentService
-                assert!(content.contains("event: assistant_output"));
-
-                // Should NOT contain the stub response
-                assert!(!content.contains("This is a stub response"));
-                // Should contain either the AgentService fallback response, an error event, or the structured error response
-                assert!(
-                    content.contains("Due to current limitations")
-                        || content.contains("embedding error")
-                        || content.contains("error_event")
-                        || content.contains("I'm sorry, I encountered an error")
-                        || content.contains("I'm having trouble with the AI service")
-                );
-            }
-            Err(_) => {
-                // AgentService creation failed in test environment (expected)
-                // This is not a test failure - it means external dependencies aren't available
-                // The important thing is that our code compiles and the interface works
-                println!("AgentService creation failed in test environment (expected for CI/testing without external deps)");
-            }
+            assert!(content.contains("event: assistant_output"));
+            assert!(!content.contains("This is a stub response"));
+            assert!(
+                content.contains("Due to current limitations")
+                    || content.contains("embedding error")
+                    || content.contains("error_event")
+                    || content.contains("I'm sorry, I encountered an error")
+                    || content.contains("I'm having trouble with the AI service")
+            );
         }
     }
 
@@ -284,16 +264,11 @@ mod tests {
         use store::{Message, Role};
         use uuid::Uuid;
 
-        // This test will initially fail because we need to create test infrastructure
-        // for full integration testing including file setup and tool detection
-
-        // Create temporary test environment
         let temp_dir = tempfile::TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let data_dir = temp_dir.path().join("data");
         fs::create_dir_all(&data_dir).unwrap();
 
-        // Create a test file that can be summarized
         let test_file_path = data_dir.join("test_document.txt");
         fs::write(
             &test_file_path,
@@ -332,7 +307,6 @@ mod tests {
                 let agent_service = Arc::new(agent_service);
                 let app = create_app_with_state(agent_service);
 
-                // Test a request that should trigger tool usage (file summarization)
                 let request_body = PredictStreamRequest {
                     session_id: Uuid::new_v4(),
                     messages: vec![Message {
@@ -364,9 +338,6 @@ mod tests {
                     .unwrap();
                 let content = String::from_utf8(body.to_vec()).unwrap();
 
-                println!("Response content: {}", content); // Debug output
-
-                // Should contain both tool usage and assistant output events
                 assert!(
                     content.contains("event: tool_usage"),
                     "Should contain tool_usage event"
@@ -381,7 +352,6 @@ mod tests {
                     "Should mention file_summarizer tool"
                 );
 
-                // Should contain information from the summarized file
                 assert!(
                     content.contains("onboarding")
                         || content.contains("company")
@@ -391,8 +361,6 @@ mod tests {
                 );
             }
             Err(e) => {
-                // For TDD, this test should fail if AgentService can't be created
-                // We need proper integration test infrastructure
                 panic!(
                     "Integration test failed: AgentService creation failed: {}",
                     e

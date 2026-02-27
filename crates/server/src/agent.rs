@@ -105,7 +105,7 @@ impl std::fmt::Debug for AgentService {
             .field("config", &self.config)
             .field("session_store", &"RedisSessionStore<...>")
             .field("embeddings_client", &"EmbeddingClient<...>")
-            .field("vector_store", &"AnyVectorStore<...>")
+            .field("vector_store", &"VectorSearch<...>")
             .field("llm_client", &"BedrockClient<...>")
             .field("tool_registry", &"ToolRegistry<...>")
             .field("text_chunker", &"TextChunker<...>")
@@ -117,7 +117,6 @@ type EmbeddingClient = Box<dyn EmbeddingProvider>;
 
 impl AgentService {
     pub async fn new(config: Config) -> Result<Self> {
-        // Initialize Redis session store
         let redis_cfg = config.redis.with_env_overrides();
         let session_ttl = std::time::Duration::from_secs(redis_cfg.session_ttl_seconds);
         let session_store = Arc::new(
@@ -125,7 +124,6 @@ impl AgentService {
                 .context("Failed to create Redis session store")?,
         );
 
-        // Initialize embeddings client via factory (with fallback for testing)
         let embeddings_client: EmbeddingClient = create_embedding_provider(&config.embedding)
             .await
             .context("Failed to create embedding provider")?;
@@ -160,7 +158,6 @@ impl AgentService {
             Arc::new(store)
         };
 
-        // Initialize LLM client with configured models
         let llm_cfg = config.llm.with_env_overrides();
         let model_config = ModelConfig {
             primary_model: llm_cfg.primary,
@@ -173,7 +170,6 @@ impl AgentService {
                 .context("Failed to create Bedrock client")?,
         );
 
-        // Initialize tool registry
         let mut tool_registry = ToolRegistry::new();
         let file_summarizer = FileSummarizerTool::new();
         tool_registry
@@ -181,7 +177,6 @@ impl AgentService {
             .context("Failed to register file summarizer tool")?;
         let tool_registry = Arc::new(tool_registry);
 
-        // Initialize text chunker
         let chunk_config = ChunkConfig {
             chunk_size: 500,
             overlap_size: 100,
@@ -199,7 +194,6 @@ impl AgentService {
         })
     }
 
-    // Dependency-injection friendly constructor for testing and composition
     pub async fn with_clients(
         config: Config,
         session_store: Arc<RedisSessionStore>,
@@ -422,11 +416,9 @@ impl AgentService {
     }
 
     pub async fn add_document(&self, file_name: &str, content: &str) -> Result<()> {
-        // Chunk the document content
         let chunks = self.text_chunker.chunk_text(content);
 
         for (chunk_id, chunk) in chunks.into_iter().enumerate() {
-            // Generate embedding for chunk
             let embeddings = self
                 .embeddings_client
                 .embed(vec![chunk.content.clone()])
@@ -438,7 +430,6 @@ impl AgentService {
                 .next()
                 .ok_or_else(|| anyhow::anyhow!("No embedding generated"))?;
 
-            // Create document chunk
             let document_chunk = DocumentChunk {
                 file_name: file_name.to_string(),
                 chunk_id,
@@ -446,7 +437,6 @@ impl AgentService {
                 embedding,
             };
 
-            // Insert into vector store
             self.vector_store.insert_document(document_chunk).await?;
         }
 
@@ -477,19 +467,16 @@ impl AgentService {
         {
             let path = entry.path();
 
-            // Only process .txt files
             if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("txt") {
                 let file_name = path
                     .file_name()
                     .and_then(|s| s.to_str())
                     .ok_or_else(|| anyhow::anyhow!("Invalid filename for: {:?}", path))?;
 
-                // Read file content
                 let content = fs::read_to_string(&path)
                     .await
                     .context(format!("Failed to read file: {:?}", path))?;
 
-                // Add document to vector store
                 info!("Loading document: {}", file_name);
                 self.add_document(file_name, &content)
                     .await
@@ -508,7 +495,6 @@ impl AgentService {
     ) -> Result<Vec<ChatMessage>> {
         let mut llm_messages = Vec::new();
 
-        // Add context from search results if any
         if !search_results.is_empty() {
             let mut context = String::from("Context information from relevant documents:\n\n");
             for result in search_results {
@@ -526,7 +512,6 @@ impl AgentService {
             });
         }
 
-        // Convert session messages to LLM format
         for message in messages {
             let role = match message.role {
                 Role::User => "user",
@@ -679,18 +664,14 @@ mod tests {
 
         let service = match AgentService::new(config).await {
             Ok(s) => s,
-            Err(_) => return, // Skip if service creation fails (expected in test environment)
+            Err(_) => return,
         };
 
-        // Add a test document to the vector store
         let test_content =
             "This document explains the onboarding process. New employees should report to HR.";
         let result = service.add_document("onboarding.txt", test_content).await;
-
-        // For TDD - this should initially pass because add_document works
         assert!(result.is_ok(), "Document insertion should succeed");
 
-        // Now test search functionality - this is what we're testing
         let session_id = Uuid::new_v4();
         let messages = vec![Message {
             role: Role::User,
@@ -700,23 +681,17 @@ mod tests {
 
         let events = service.process_message(session_id, messages).await.unwrap();
 
-        // Convert events to string for easier testing
         let event_content = events
             .iter()
             .map(|event| format!("{:?}", event))
             .collect::<Vec<_>>()
             .join(" ");
 
-        // Verify that we have at least one event response
         assert!(
             !events.is_empty(),
             "Should have at least one event response"
         );
 
-        // Test passes if:
-        // 1. We get an AI service error (indicating vector search worked and found documents, then tried LLM)
-        // 2. OR we get the actual content from the inserted document (ideal case)
-        // The AI service error confirms that the vector search pipeline is working correctly
         assert!(event_content.contains("I'm having trouble with the AI service") ||
                event_content.contains("onboarding") || event_content.contains("HR") ||
                event_content.contains("employees"),
@@ -739,11 +714,9 @@ mod tests {
             name: None,
         };
 
-        // First message
         let messages = vec![initial_message.clone()];
         let result = service.process_message(session_id, messages).await;
 
-        // Check first response
         assert!(
             result.is_ok(),
             "First message should be processed successfully"
@@ -751,7 +724,6 @@ mod tests {
         let events = result.unwrap();
         assert!(!events.is_empty(), "Should receive response events");
 
-        // Verify session storage
         let stored_messages = service.session_store.get(&session_id).await.unwrap();
         assert!(
             !stored_messages.is_empty(),
@@ -762,7 +734,6 @@ mod tests {
             "First message should match"
         );
 
-        // Second message to verify persistence
         let follow_up_message = Message {
             role: Role::User,
             content: "What can you tell me about the company?".to_string(),
@@ -777,14 +748,12 @@ mod tests {
             "Follow-up message should be processed successfully"
         );
 
-        // Verify session contains both messages
         let final_messages = service.session_store.get(&session_id).await.unwrap();
         assert!(
             !final_messages.is_empty(),
             "Session should contain messages"
         );
 
-        // Verify messages are in correct order
         let has_initial = final_messages
             .iter()
             .any(|msg| msg.content == initial_message.content);
@@ -800,31 +769,24 @@ mod tests {
     async fn should_handle_specific_error_types_correctly() {
         use crate::errors::AgentError;
 
-        // Test that we can differentiate between different error types
-        // This test should fail initially until we implement the error enum
-
         let (config, _temp_dir) = create_test_config().await;
         let _service = match AgentService::new(config).await {
             Ok(s) => s,
             Err(_) => return,
         };
 
-        // Test embedding error
         let embedding_error = AgentError::EmbeddingError("Embedding API failed".to_string());
         assert_eq!(embedding_error.http_status_code(), 500);
         assert!(embedding_error.is_retryable());
 
-        // Test tool error
         let tool_error = AgentError::ToolError("File not found".to_string());
         assert_eq!(tool_error.http_status_code(), 400);
         assert!(!tool_error.is_retryable());
 
-        // Test LLM error
         let llm_error = AgentError::LlmError("Bedrock timeout".to_string());
         assert_eq!(llm_error.http_status_code(), 503);
         assert!(llm_error.is_retryable());
 
-        // Test database error
         let db_error = AgentError::DatabaseError("Connection lost".to_string());
         assert_eq!(db_error.http_status_code(), 500);
         assert!(db_error.is_retryable());
@@ -835,11 +797,9 @@ mod tests {
         use crate::errors::AgentError;
         use crate::sse::create_error_event;
 
-        // Test that errors are properly converted to SSE events with correct structure
         let embedding_error = AgentError::EmbeddingError("Embedding API timeout".to_string());
         let event = create_error_event(&embedding_error);
 
-        // Convert to debug string to verify content
         let event_str = format!("{:?}", event);
         assert!(event_str.contains("error_event"));
         assert!(event_str.contains("Embedding service error"));
@@ -855,7 +815,6 @@ mod tests {
     #[tokio::test]
     #[ignore = "Refactor how the postgres vector store is initialized to allow testing"]
     async fn should_create_bedrock_cohere_embedding_client() {
-        // TDD test for Bedrock Cohere integration
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
 
@@ -882,17 +841,11 @@ mod tests {
             },
         };
 
-        // This will attempt to create BedrockCohereClient
         let result = AgentService::new(config).await;
 
         match result {
-            Ok(_service) => {
-                // Success! BedrockCohere client was created
-                // This means AWS configuration is available in test environment
-            }
+            Ok(_service) => {}
             Err(e) => {
-                // Expected in test environment without AWS credentials
-                // The important thing is that the code compiles and attempts the right path
                 let error_msg = e.to_string();
                 assert!(
                     error_msg.contains("Failed to create Bedrock Cohere client")

@@ -31,28 +31,28 @@ impl AgentError {
     /// Returns the appropriate HTTP status code for this error
     pub fn http_status_code(&self) -> u16 {
         match self {
-            AgentError::EmbeddingError(_) => 500,   // Internal Server Error
-            AgentError::ToolError(_) => 400,        // Bad Request (usually file not found)
-            AgentError::LlmError(_) => 503,         // Service Unavailable (can retry)
-            AgentError::DatabaseError(_) => 500,    // Internal Server Error
-            AgentError::VectorStoreError(_) => 500, // Internal Server Error
-            AgentError::SessionError(_) => 422,     // Unprocessable Entity
-            AgentError::ConfigError(_) => 500,      // Internal Server Error
-            AgentError::ValidationError(_) => 400,  // Bad Request
+            AgentError::EmbeddingError(_) => 500,
+            AgentError::ToolError(_) => 400,
+            AgentError::LlmError(_) => 503,
+            AgentError::DatabaseError(_) => 500,
+            AgentError::VectorStoreError(_) => 500,
+            AgentError::SessionError(_) => 422,
+            AgentError::ConfigError(_) => 500,
+            AgentError::ValidationError(_) => 400,
         }
     }
 
     /// Returns true if the error is potentially recoverable with a retry
     pub fn is_retryable(&self) -> bool {
         match self {
-            AgentError::EmbeddingError(_) => true, // Embedding API might be temporarily down
-            AgentError::ToolError(_) => false,     // File not found won't fix itself
-            AgentError::LlmError(_) => true,       // Bedrock timeout can be retried
-            AgentError::DatabaseError(_) => true,  // Connection can be re-established
-            AgentError::VectorStoreError(_) => true, // DB issue, can retry
-            AgentError::SessionError(_) => false,  // Session issues are not retryable
-            AgentError::ConfigError(_) => false,   // Config errors need manual fix
-            AgentError::ValidationError(_) => false, // Input validation errors can't be retried
+            AgentError::EmbeddingError(_) => true,
+            AgentError::ToolError(_) => false,
+            AgentError::LlmError(_) => true,
+            AgentError::DatabaseError(_) => true,
+            AgentError::VectorStoreError(_) => true,
+            AgentError::SessionError(_) => false,
+            AgentError::ConfigError(_) => false,
+            AgentError::ValidationError(_) => false,
         }
     }
 
