@@ -33,3 +33,51 @@ jobs:
 
     - name: Run tests
       run: cargo test --all-features
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-bin: true
+
+    - name: Install cargo-audit
+      run: cargo install cargo-audit --locked
+
+    - name: Audit dependencies
+      run: cargo audit
+
+    - name: Install cargo-deny
+      run: cargo install cargo-deny --locked
+
+    - name: Check licenses and advisories
+      run: cargo deny check
+
+  deps:
+    name: Unused Dependencies
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-bin: true
+
+    - name: Install cargo-machete
+      run: cargo install cargo-machete --locked
+
+    - name: Check for unused dependencies
+      run: cargo machete

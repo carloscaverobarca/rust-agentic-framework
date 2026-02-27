@@ -66,6 +66,40 @@ repos:
             \.pre-commit-config\.yaml$
           )
 
+  # Commit message: enforce Conventional Commits format
+  - repo: https://github.com/jorisroovers/gitlint
+    rev: v0.19.1
+    hooks:
+      - id: gitlint
+        stages: [commit-msg]
+
+  # Local hooks requiring cargo-machete, cargo-audit, cargo-deny to be installed
+  - repo: local
+    hooks:
+      - id: cargo-machete
+        name: cargo machete (unused dependencies)
+        entry: cargo machete
+        language: system
+        pass_filenames: false
+        files: Cargo\.toml$
+        stages: [pre-commit]
+
+      - id: cargo-audit
+        name: cargo audit (vulnerability scan)
+        entry: cargo audit
+        language: system
+        pass_filenames: false
+        files: Cargo\.lock$
+        stages: [pre-push]
+
+      - id: cargo-deny
+        name: cargo deny (licenses & advisories)
+        entry: cargo deny check
+        language: system
+        pass_filenames: false
+        files: Cargo\.(toml|lock)$
+        stages: [pre-push]
+
 default_stages: [pre-commit]
 fail_fast: false
 minimum_pre_commit_version: '3.0.0'
