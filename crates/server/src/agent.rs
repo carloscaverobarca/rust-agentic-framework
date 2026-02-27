@@ -5,11 +5,9 @@ use anyhow::{Context, Result};
 use axum::response::sse::Event;
 use chrono::Utc;
 use embeddings::{create_embedding_provider, ChunkConfig, EmbeddingProvider, TextChunker};
-use futures::stream::Stream;
-use llm::{BedrockClient, ChatMessage, ModelConfig, StreamEvent};
+use llm::{BedrockClient, ChatMessage, ModelConfig};
 use log::info;
 use std::collections::HashMap;
-use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use store::{Document, DocumentChunk, SearchResult, VectorStore};
 use store::{Message, RedisSessionStore, Role};
@@ -162,11 +160,6 @@ impl std::fmt::Debug for AgentService {
 }
 
 type EmbeddingClient = Box<dyn EmbeddingProvider>;
-
-pub struct AgentResponse {
-    pub session_id: Uuid,
-    pub events: Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send + 'static>>,
-}
 
 impl AgentService {
     pub async fn new(config: Config) -> Result<Self> {
@@ -645,17 +638,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_create_agent_service() {
-        let (config, _temp_dir) = create_test_config().await;
-
-        // This will fail initially due to missing database, which is expected for TDD
-        let result = AgentService::new(config).await;
-
-        // For TDD, we expect this to fail until we implement proper database setup
-        assert!(result.is_err() || result.is_ok());
-    }
-
-    #[tokio::test]
     async fn should_detect_tool_calls_in_message() {
         let (config, temp_dir) = create_test_config().await;
 
@@ -948,57 +930,6 @@ mod tests {
         let event_str = format!("{:?}", event);
         assert!(event_str.contains("Tool execution error"));
         assert!(event_str.contains("test.txt"));
-    }
-
-    #[tokio::test]
-    async fn should_use_configured_llm_models_from_config() {
-        // TDD RED phase - test that LLM client uses models from config, not defaults
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir.path().join("test.db");
-
-        let config = Config {
-            embedding: embeddings::EmbeddingConfig {
-                provider: "fallback".to_string(),
-                model: None,
-                aws_region: None,
-                dimensions: None,
-            },
-            llm: crate::config::LlmConfig {
-                primary: "custom-primary-model".to_string(),
-                fallback: "custom-fallback-model".to_string(),
-            },
-            pgvector: crate::config::PgVectorConfig {
-                url: format!("sqlite://{}", db_path.display()),
-            },
-            redis: crate::config::RedisConfig {
-                url: "redis://localhost:6379".to_string(),
-                session_ttl_seconds: 3600,
-            },
-            data: crate::config::DataConfig {
-                document_dir: temp_dir.path().to_string_lossy().to_string(),
-            },
-        };
-
-        // This should fail initially because we're not using config models
-        match AgentService::new(config).await {
-            Ok(_service) => {
-                // For now, if service creation succeeds, we still need to verify
-                // that it uses the correct models. This test will initially fail
-                // because we're not reading the config values.
-
-                // TODO: Add assertion to verify service uses custom-primary-model
-                // and custom-fallback-model instead of defaults
-
-                // This will be implemented in the GREEN phase
-            }
-            Err(_) => {
-                // Service creation may fail in test environment, but the important thing
-                // is that when it works, it should use the configured models
-            }
-        }
-
-        // This test passes because we now properly configure the ModelConfig
-        // with the values from the TOML config instead of using defaults
     }
 
     #[tokio::test]
