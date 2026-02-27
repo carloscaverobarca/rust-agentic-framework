@@ -93,46 +93,29 @@ impl AnyVectorStore {
     }
 }
 
-/// Tool call detection logic extracted for better separation of concerns
-pub struct ToolCallDetector {
-    document_dir: String,
-}
+fn detect_tool_calls(content: &str, document_dir: &str) -> Result<Vec<ToolInput>> {
+    let mut tool_calls = Vec::new();
 
-impl ToolCallDetector {
-    pub fn new(document_dir: &str) -> Self {
-        Self {
-            document_dir: document_dir.to_string(),
-        }
-    }
+    if content.contains("file:") || content.contains(".txt") || content.contains(".rs") {
+        for word in content.split_whitespace() {
+            if word.contains('.')
+                && (word.ends_with(".txt") || word.ends_with(".rs") || word.ends_with(".py"))
+            {
+                let file_path = if std::path::Path::new(word).is_absolute() {
+                    word.to_string()
+                } else {
+                    format!("{}/{}", document_dir, word)
+                };
 
-    pub async fn detect_tool_calls(&self, content: &str) -> Result<Vec<ToolInput>> {
-        let mut tool_calls = Vec::new();
-
-        // Simple heuristic: look for file path mentions
-        if content.contains("file:") || content.contains(".txt") || content.contains(".rs") {
-            // Extract potential file paths
-            let words: Vec<&str> = content.split_whitespace().collect();
-            for word in words {
-                if word.contains('.')
-                    && (word.ends_with(".txt") || word.ends_with(".rs") || word.ends_with(".py"))
-                {
-                    // Resolve relative paths using document_dir
-                    let file_path = if std::path::Path::new(word).is_absolute() {
-                        word.to_string()
-                    } else {
-                        format!("{}/{}", self.document_dir, word)
-                    };
-
-                    let tool_input = ToolInput::new("file_summarizer".to_string())
-                        .with_argument("file_path", file_path)
-                        .context("Failed to create tool input")?;
-                    tool_calls.push(tool_input);
-                }
+                let tool_input = ToolInput::new("file_summarizer".to_string())
+                    .with_argument("file_path", file_path)
+                    .context("Failed to create tool input")?;
+                tool_calls.push(tool_input);
             }
         }
-
-        Ok(tool_calls)
     }
+
+    Ok(tool_calls)
 }
 
 pub struct AgentService {
@@ -337,9 +320,7 @@ impl AgentService {
         session_id: Uuid,
         user_content: &str,
     ) -> Result<Vec<Event>, AgentError> {
-        let tool_calls = self
-            .detect_tool_calls(user_content)
-            .await
+        let tool_calls = detect_tool_calls(user_content, &self.config.data.document_dir)
             .map_err(|e| AgentError::ToolError(e.to_string()))?;
         let mut events = Vec::new();
 
@@ -463,11 +444,6 @@ impl AgentService {
         }
 
         Ok(events)
-    }
-
-    async fn detect_tool_calls(&self, content: &str) -> Result<Vec<ToolInput>> {
-        let detector = ToolCallDetector::new(&self.config.data.document_dir);
-        detector.detect_tool_calls(content).await
     }
 
     pub async fn add_document(&self, file_name: &str, content: &str) -> Result<()> {
@@ -631,16 +607,11 @@ mod tests {
 
     #[tokio::test]
     async fn should_detect_tool_calls_in_message() {
-        let (config, temp_dir) = create_test_config().await;
-
-        // Mock the service creation for testing tool detection logic
-        let service = match AgentService::new(config).await {
-            Ok(s) => s,
-            Err(_) => return, // Skip if service creation fails (expected in test environment)
-        };
+        let (_config, temp_dir) = create_test_config().await;
+        let document_dir = temp_dir.path().to_string_lossy();
 
         let content = "Please summarize this file: test.txt";
-        let tool_calls = service.detect_tool_calls(content).await.unwrap();
+        let tool_calls = detect_tool_calls(content, &document_dir).unwrap();
 
         assert_eq!(tool_calls.len(), 1);
         assert_eq!(tool_calls[0].name, "file_summarizer");
@@ -706,12 +677,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_detect_tool_calls_with_tool_call_detector() {
+    async fn should_detect_tool_calls_in_content() {
         let temp_dir = TempDir::new().unwrap();
-        let detector = ToolCallDetector::new(&temp_dir.path().to_string_lossy());
+        let document_dir = temp_dir.path().to_string_lossy();
 
         let content = "Please summarize this file: test.txt and also check report.rs";
-        let tool_calls = detector.detect_tool_calls(content).await.unwrap();
+        let tool_calls = detect_tool_calls(content, &document_dir).unwrap();
 
         assert_eq!(tool_calls.len(), 2);
         assert_eq!(tool_calls[0].name, "file_summarizer");
