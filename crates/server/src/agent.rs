@@ -403,7 +403,7 @@ impl AgentService {
             .await
             .map_err(|e| AgentError::SessionError(e.to_string()))?;
 
-        let llm_messages = match self.convert_to_llm_messages(session_messages, search_results) {
+        let llm_messages = match Self::convert_to_llm_messages(session_messages, search_results) {
             Ok(messages) => messages,
             Err(e) => {
                 return Ok(vec![create_assistant_output_event(&format!(
@@ -552,14 +552,6 @@ impl AgentService {
     }
 
     fn convert_to_llm_messages(
-        &self,
-        messages: Vec<Message>,
-        search_results: Vec<SearchResult>,
-    ) -> Result<Vec<ChatMessage>> {
-        Self::convert_to_llm_messages_static(messages, search_results)
-    }
-
-    fn convert_to_llm_messages_static(
         messages: Vec<Message>,
         search_results: Vec<SearchResult>,
     ) -> Result<Vec<ChatMessage>> {
@@ -660,13 +652,6 @@ mod tests {
 
     #[tokio::test]
     async fn should_convert_messages_to_llm_format() {
-        let (config, _temp_dir) = create_test_config().await;
-
-        let service = match AgentService::new(config).await {
-            Ok(s) => s,
-            Err(_) => return,
-        };
-
         let messages = vec![
             Message {
                 role: Role::User,
@@ -680,10 +665,8 @@ mod tests {
             },
         ];
 
-        let search_results = vec![]; // Empty for this test
-        let llm_messages = service
-            .convert_to_llm_messages(messages, search_results)
-            .unwrap();
+        let search_results = vec![];
+        let llm_messages = AgentService::convert_to_llm_messages(messages, search_results).unwrap();
 
         assert_eq!(llm_messages.len(), 2);
         assert_eq!(llm_messages[0].role, "user");
@@ -694,13 +677,6 @@ mod tests {
 
     #[tokio::test]
     async fn should_add_context_to_llm_messages_when_search_results_present() {
-        let (config, _temp_dir) = create_test_config().await;
-
-        let service = match AgentService::new(config).await {
-            Ok(s) => s,
-            Err(_) => return,
-        };
-
         let messages = vec![Message {
             role: Role::User,
             content: "What is this about?".to_string(),
@@ -721,9 +697,7 @@ mod tests {
 
         let search_results = vec![SearchResult::new(doc, 0.95)];
 
-        let llm_messages = service
-            .convert_to_llm_messages(messages, search_results)
-            .unwrap();
+        let llm_messages = AgentService::convert_to_llm_messages(messages, search_results).unwrap();
 
         assert_eq!(llm_messages.len(), 2); // Context + user message
         assert!(llm_messages[0].content.contains("Context information"));
