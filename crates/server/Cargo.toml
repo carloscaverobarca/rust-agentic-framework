@@ -24,7 +24,7 @@ chrono = { workspace = true }
 thiserror = "1.0"
 toml = { workspace = true }
 async-trait = "0.1"
-log = "0.4.27"
+tracing = { workspace = true }
 tracing-subscriber = "0.3.19"
 
 [dev-dependencies]

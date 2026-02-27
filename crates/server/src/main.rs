@@ -5,9 +5,9 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use log::{error, info, warn};
 use serde_json::{json, Value};
 use std::sync::Arc;
+use tracing::{error, info, warn};
 
 // Import the server library to make config available
 use server as _;

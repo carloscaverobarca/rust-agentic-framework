@@ -9,8 +9,8 @@ use aws_sdk_bedrockruntime::{
     Client,
 };
 use futures::stream::Stream;
-use log::{error, info};
 use std::pin::Pin;
+use tracing::{error, info};
 
 pub struct BedrockClient {
     client: Client,

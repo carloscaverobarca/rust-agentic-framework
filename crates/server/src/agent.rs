@@ -5,11 +5,11 @@ use anyhow::{Context, Result};
 use axum::response::sse::Event;
 use embeddings::{create_embedding_provider, ChunkConfig, EmbeddingProvider, TextChunker};
 use llm::{BedrockClient, ChatMessage, ModelConfig};
-use log::info;
 use std::sync::Arc;
 use store::{DocumentChunk, SearchResult, VectorSearch, VectorStore};
 use store::{Message, RedisSessionStore, Role};
 use tooling::{FileSummarizerTool, ToolInput, ToolRegistry};
+use tracing::info;
 use uuid::Uuid;
 
 #[cfg(test)]
