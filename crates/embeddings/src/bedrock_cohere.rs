@@ -41,37 +41,10 @@ pub struct BedrockCohereClient {
 }
 
 impl BedrockCohereClient {
-    /// Test AWS connectivity and credentials without making an embedding request
-    pub async fn test_connection(&self) -> Result<()> {
-        let test_request = BedrockEmbedRequest {
-            texts: vec!["test".to_string()],
-            input_type: "search_document".to_string(),
-        };
-
-        let request_body = serde_json::to_string(&test_request)?;
-        // This will fail if credentials are wrong, region is wrong, or model doesn't exist
-        match invoke_bedrock(
-            &self.client,
-            &self.config.model_id,
-            request_body.into_bytes(),
-        )
-        .await
-        {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                error!("AWS Bedrock connection test failed: {}", e);
-                Err(e)
-            }
-        }
-    }
     pub async fn new(config: BedrockCohereConfig) -> Result<Self> {
-        // Check for common AWS environment variables
         Self::log_aws_environment();
-
-        // Validate configuration
         Self::validate_config(&config)?;
 
-        // Load AWS config based on the region
         let aws_config = aws_config::defaults(BehaviorVersion::latest())
             .region(aws_config::Region::new(config.aws_region.clone()))
             .load()
@@ -83,7 +56,6 @@ impl BedrockCohereClient {
     }
 
     fn log_aws_environment() {
-        // Check for AWS credentials without exposing values
         let aws_access_key = std::env::var("AWS_ACCESS_KEY_ID").is_ok();
         let aws_secret_key = std::env::var("AWS_SECRET_ACCESS_KEY").is_ok();
 
@@ -105,7 +77,6 @@ impl BedrockCohereClient {
             return Err(anyhow::anyhow!(error));
         }
 
-        // Validate model ID format for Bedrock Cohere models
         if !config.model_id.starts_with("cohere.embed-") {
             warn!(
                 "Model ID '{}' does not follow expected Bedrock Cohere format (cohere.embed-*)",
@@ -113,7 +84,6 @@ impl BedrockCohereClient {
             );
         }
 
-        // Check for valid AWS regions (partial list of commonly used regions)
         let valid_regions = [
             "us-east-1",
             "us-east-2",
@@ -171,7 +141,6 @@ impl BedrockCohereClient {
                 if let Ok(response_str) = std::str::from_utf8(&response_body) {
                     error!("Raw response: {}", response_str);
 
-                    // Check for common error patterns in response
                     if response_str.contains("ValidationException") {
                         error!("Bedrock ValidationException - likely invalid model ID or request format");
                     } else if response_str.contains("AccessDeniedException") {
@@ -192,14 +161,12 @@ impl BedrockCohereClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tracing_subscriber;
 
     #[tokio::test]
     async fn should_create_bedrock_cohere_client_with_default_config() {
         let config = BedrockCohereConfig::default();
         let client = BedrockCohereClient::new(config.clone()).await;
 
-        // This test should initially FAIL (RED phase)
         assert!(client.is_ok());
         let client = client.unwrap();
         assert_eq!(client.config.model_id, "cohere.embed-multilingual-v3");
@@ -217,7 +184,6 @@ mod tests {
             max_retries: 5,
         };
 
-        // This test should initially FAIL (RED phase)
         let client = BedrockCohereClient::new(config.clone()).await.unwrap();
         assert_eq!(client.config.model_id, "cohere.embed-english-v3");
         assert_eq!(client.config.aws_region, "eu-west-1");
@@ -230,35 +196,21 @@ mod tests {
         let config = BedrockCohereConfig::default();
         let client = BedrockCohereClient::new(config).await.unwrap();
 
-        // This test should initially FAIL (RED phase)
         let result = client.embed(vec![]).await.unwrap();
         assert!(result.is_empty());
     }
 
     #[tokio::test]
     async fn should_handle_single_text_embedding() {
-        // Initialize tracing for test debugging
-        #[cfg(test)]
-        let _ = tracing_subscriber::fmt().try_init();
-
         let config = BedrockCohereConfig::default();
         let client = BedrockCohereClient::new(config).await.unwrap();
 
-        // This test should initially FAIL (RED phase)
-        // We'll use mock or test mode to avoid actual AWS calls
         let result = client.embed(vec!["Hello world".to_string()]).await;
-
-        // For now, we expect this to fail until we implement it
-        // In a real environment with AWS credentials, this should succeed
         assert!(result.is_err() || result.unwrap().len() == 1);
     }
 
     #[tokio::test]
     async fn should_handle_multiple_text_embeddings() {
-        // Initialize tracing for test debugging
-        #[cfg(test)]
-        let _ = tracing_subscriber::fmt().try_init();
-
         let config = BedrockCohereConfig::default();
         let client = BedrockCohereClient::new(config).await.unwrap();
 
@@ -268,17 +220,12 @@ mod tests {
             "Third text".to_string(),
         ];
 
-        // This test should initially FAIL (RED phase)
         let result = client.embed(texts).await;
-
-        // For now, we expect this to fail until we implement it
-        // In a real environment with AWS credentials, this should succeed
         assert!(result.is_err() || result.unwrap().len() == 3);
     }
 
     #[tokio::test]
     async fn should_create_proper_bedrock_request_format() {
-        // This test will fail initially - TDD RED phase
         let request = BedrockEmbedRequest {
             texts: vec!["test text".to_string()],
             input_type: "search_document".to_string(),
@@ -288,28 +235,5 @@ mod tests {
         assert!(json.contains("test text"));
         assert!(json.contains("search_document"));
         assert!(!json.contains("model")); // Bedrock doesn't include model in request body
-    }
-
-    #[tokio::test]
-    async fn should_test_aws_connection() {
-        // Initialize tracing for test debugging
-        #[cfg(test)]
-        let _ = tracing_subscriber::fmt().try_init();
-
-        let config = BedrockCohereConfig::default();
-        let client = BedrockCohereClient::new(config).await.unwrap();
-
-        // This test will help debug AWS connectivity issues
-        let result = client.test_connection().await;
-
-        // This will typically fail in CI/test environments without AWS credentials
-        // but provides valuable debugging information
-        if result.is_err() {
-            println!("Expected failure in test environment: {:?}", result.err());
-        }
-
-        // Don't assert success since this test is for debugging purposes
-        // In a real AWS environment, you could uncomment the line below:
-        // assert!(result.is_ok(), "AWS connection test should pass with valid credentials");
     }
 }
