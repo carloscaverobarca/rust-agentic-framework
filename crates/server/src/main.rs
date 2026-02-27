@@ -1,3 +1,4 @@
+use anyhow::Context;
 use axum::{
     extract::{Json as ExtractJson, State},
     response::Json,
@@ -24,17 +25,6 @@ async fn health() -> Json<Value> {
     Json(json!({"status": "ok"}))
 }
 
-async fn predict_stream(
-    ExtractJson(_request): ExtractJson<PredictStreamRequest>,
-) -> impl axum::response::IntoResponse {
-    // For now, return a static stub response
-    let events = vec![create_assistant_output_event(
-        "This is a stub response for your request.",
-    )];
-
-    create_sse_stream(events)
-}
-
 async fn predict_stream_with_agent(
     State(agent_service): State<Arc<agent::AgentService>>,
     ExtractJson(request): ExtractJson<PredictStreamRequest>,
@@ -56,12 +46,6 @@ async fn predict_stream_with_agent(
             create_sse_stream(error_events)
         }
     }
-}
-
-fn create_app() -> Router {
-    Router::new()
-        .route("/health", get(health))
-        .route("/predict_stream", post(predict_stream))
 }
 
 fn create_app_with_state(agent_service: Arc<agent::AgentService>) -> Router {
@@ -87,15 +71,11 @@ async fn main() -> anyhow::Result<()> {
         create_development_config()
     });
 
-    // Initialize AgentService
-    let agent_service = match agent::AgentService::new(config).await {
-        Ok(service) => Arc::new(service),
-        Err(e) => {
-            error!("Failed to initialize AgentService: {}", e);
-            error!("Falling back to stub implementation");
-            return run_server_with_stub().await;
-        }
-    };
+    let agent_service = Arc::new(
+        agent::AgentService::new(config)
+            .await
+            .context("Failed to initialize AgentService")?,
+    );
 
     info!("AgentService initialized successfully");
 
@@ -116,22 +96,6 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to bind to address");
 
     info!("Server running on http://0.0.0.0:3000 with AgentService");
-
-    axum::serve(listener, app)
-        .await
-        .expect("Failed to start server");
-
-    Ok(())
-}
-
-async fn run_server_with_stub() -> anyhow::Result<()> {
-    let app = create_app();
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
-        .await
-        .expect("Failed to bind to address");
-
-    println!("Server running on http://0.0.0.0:3000 with stub implementation");
 
     axum::serve(listener, app)
         .await
@@ -172,14 +136,17 @@ mod tests {
     use axum::body::Body;
     use axum::http::Request;
     use axum::http::StatusCode;
+    use axum::routing::get;
     use std::sync::Arc;
     use tower::ServiceExt;
 
+    fn create_test_router() -> Router {
+        Router::new().route("/health", get(health))
+    }
+
     #[tokio::test]
     async fn should_return_ok_for_health_endpoint() {
-        let app = create_app();
-
-        let response = app
+        let response = create_test_router()
             .oneshot(
                 Request::builder()
                     .uri("/health")
@@ -201,9 +168,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_return_404_for_unknown_endpoint() {
-        let app = create_app();
-
-        let response = app
+        let response = create_test_router()
             .oneshot(
                 Request::builder()
                     .uri("/unknown")
@@ -214,53 +179,6 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
-    }
-
-    #[tokio::test]
-    async fn should_return_sse_stream_for_predict_stream_endpoint() {
-        use store::{Message, Role};
-        use uuid::Uuid;
-
-        let app = create_app();
-
-        let request_body = PredictStreamRequest {
-            session_id: Uuid::new_v4(),
-            messages: vec![Message {
-                role: Role::User,
-                content: "How do I submit expenses?".to_string(),
-                name: None,
-            }],
-        };
-
-        let json_body = serde_json::to_string(&request_body).unwrap();
-
-        let response = app
-            .oneshot(
-                Request::builder()
-                    .uri("/predict_stream")
-                    .method("POST")
-                    .header("content-type", "application/json")
-                    .header("accept", "text/event-stream")
-                    .body(Body::from(json_body))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(
-            response.headers().get("content-type").unwrap(),
-            "text/event-stream"
-        );
-
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let content = String::from_utf8(body.to_vec()).unwrap();
-
-        // Should contain SSE events
-        assert!(content.contains("event: assistant_output"));
-        assert!(content.contains("This is a stub response"));
     }
 
     #[tokio::test]
